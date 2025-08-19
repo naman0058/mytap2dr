@@ -12,6 +12,10 @@ function ensurePatient(req, res, next) {
   return res.redirect('/booking');
 }
 
+router.get('/demo', function(req, res, next) {
+  res.redirect('/booking?doctor_id=17')
+});
+
 router.get('/my/bookings', ensurePatient, async (req, res) => {
   const phone = req.session.patient.phone;
   console.log('phone',phone)
