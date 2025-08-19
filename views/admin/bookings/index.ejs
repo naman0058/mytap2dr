@@ -1,0 +1,30 @@
+<%- include('../layout.ejs') %>
+<h2>Bookings (Admin)</h2>
+
+<form method="get" action="/admin/bookings" style="margin-bottom:1rem;">
+  <label>Date
+    <input type="date" name="date" value="<%= date %>">
+  </label>
+  <button>Filter</button>
+</form>
+
+<table>
+  <thead>
+    <tr>
+      <th>#</th><th>Time</th><th>Doctor</th><th>City</th><th>Hospital</th><th>Patient</th><th>Phone</th>
+    </tr>
+  </thead>
+  <tbody>
+  <% rows.forEach(r => { %>
+    <tr>
+      <td><%= r.appointment_no %></td>
+      <td><%= r.appointment_time.slice(0,5) %></td>
+      <td><%= r.doctor_name %></td>
+      <td><%= r.city %></td>
+      <td><%= r.hospital_name || '-' %></td>
+      <td><%= r.patient_name %></td>
+      <td><%= r.patient_phone %></td>
+    </tr>
+  <% }) %>
+  </tbody>
+</table>

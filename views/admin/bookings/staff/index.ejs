@@ -1,0 +1,18 @@
+<%- include('../layout.ejs') %>
+<h2>Staff</h2>
+<p><a href="/admin/staff/new">+ Add Staff</a></p>
+<table>
+  <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Doctor</th><th>City</th><th>Active</th></tr></thead>
+  <tbody>
+  <% rows.forEach(s => { %>
+    <tr>
+      <td><%= s.full_name %></td>
+      <td><%= s.email %></td>
+      <td><%= s.phone %></td>
+      <td><%= s.doctor_name %></td>
+      <td><%= s.city %></td>
+      <td><%= s.is_active ? 'Yes' : 'No' %></td>
+    </tr>
+  <% }) %>
+  </tbody>
+</table>

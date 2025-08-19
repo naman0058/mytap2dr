@@ -1,0 +1,23 @@
+<%- include('../layout.ejs') %>
+
+<h2><%= editing ? 'Edit Doctor' : 'New Doctor' %></h2>
+
+<% if (errors.length) { %>
+  <ul class="error">
+    <% errors.forEach(e => { %><li><%= e.msg %></li><% }) %>
+  </ul>
+<% } %>
+
+<form method="post" action="<%= editing ? '/doctors/' + doc.doctor_id : '/doctors' %>">
+  <label>Name <input name="doctor_name" value="<%= doc.doctor_name || '' %>" required></label>
+  <label>Number <input name="doctor_number" value="<%= doc.doctor_number || '' %>" required></label>
+  <label>Specialist <input name="specialist" value="<%= doc.specialist || '' %>"></label>
+  <label>Hospital <input name="hospital_name" value="<%= doc.hospital_name || '' %>"></label>
+  <label>Image (filename/url) <input name="image" value="<%= doc.image || '' %>"></label>
+  <label>Fees <input type="number" step="0.01" name="doctor_fees" value="<%= doc.doctor_fees || 0 %>" required></label>
+  <label>Booking Fees <input type="number" step="0.01" name="booking_fees" value="<%= doc.booking_fees || 0 %>" required></label>
+  <label>State <input name="state" value="<%= doc.state || '' %>"></label>
+  <label>City <input name="city" value="<%= doc.city || '' %>" required></label>
+  <button><%= editing ? 'Update' : 'Create' %></button>
+  <a href="/doctors">Cancel</a>
+</form>

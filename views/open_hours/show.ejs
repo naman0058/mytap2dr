@@ -1,0 +1,14 @@
+<%- include('../layout.ejs') %>
+
+<h2>Open Hours #<%= row.open_hours_id %></h2>
+<p>
+  <strong>Doctor ID:</strong> <%= row.doctor_id %><br/>
+  <strong>Day:</strong> <%= ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][row.day_of_week-1] %><br/>
+  <strong>Slot:</strong> #<%= row.slot_index %><br/>
+  <strong>Start:</strong> <%= row.start_time %> |
+  <strong>End:</strong> <%= row.end_time %>
+</p>
+<p class="actions">
+  <a href="/open-hours/<%= row.open_hours_id %>/edit">Edit</a>
+  <a href="/open-hours">Back</a>
+</p>

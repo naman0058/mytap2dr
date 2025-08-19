@@ -1,0 +1,340 @@
+<%- include('../layout.ejs') %>
+
+<style>
+  :root{
+    --brand:#0b76e0; --brand-ink:#0a5fb4; --ink:#0f172a; --muted:#64748b; --border:#e2e8f0;
+    --bg:#f8fafc; --card:#ffffff; --success:#16a34a; --warn:#f59e0b; --danger:#dc2626;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,"Noto Sans","Helvetica Neue",Arial}
+  .page{max-width:1080px;margin:0 auto;padding:16px}
+
+  .header{
+    display:flex;flex-wrap:wrap;gap:10px;align-items:center;
+    background:#eef6ff;border:1px solid #dbeafe;border-radius:16px;padding:12px;margin:6px 0 16px;
+  }
+  .header h1{margin:0;font-size:18px;color:var(--brand-ink)}
+  .pill{display:inline-flex;align-items:center;gap:8px;background:#fff;border:1px solid #dbeafe;border-radius:999px;padding:6px 10px;font-size:13px}
+  .pill svg{width:16px;height:16px}
+
+  .actions-top{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+  .btn{
+    display:inline-flex;align-items:center;gap:8px;border:1px solid var(--border);background:#fff;
+    padding:8px 12px;border-radius:10px;cursor:pointer;text-decoration:none;color:var(--ink);font-weight:600
+  }
+  .btn.primary{background:var(--brand);color:#fff;border-color:transparent}
+  .btn svg{width:18px;height:18px}
+
+  .tabs{display:flex;gap:8px;margin:12px 0}
+  .tab{
+    border:1px solid var(--border);background:#fff;padding:8px 12px;border-radius:999px;cursor:pointer;
+    display:inline-flex;gap:8px;align-items:center;font-weight:600;color:#0f172a
+  }
+  .tab.active{background:#eef6ff;border-color:#dbeafe;color:#0a5fb4}
+  .tab .count{background:#e5edff;border-radius:999px;padding:2px 8px;font-size:12px}
+
+  .filterbar{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
+  .input{border:1px solid var(--border);background:#fff;border-radius:10px;padding:10px 12px;min-width:240px}
+
+  .card{
+    background:var(--card);border:1px solid var(--border);border-radius:16px;padding:14px;margin-bottom:12px;
+    box-shadow:0 1px 1px rgba(0,0,0,.02),0 2px 10px rgba(0,0,0,.03);
+  }
+
+  /* Responsive list: cards on mobile, table on desktop */
+  .list{display:grid;gap:10px}
+  .table{display:none}
+  @media(min-width:860px){
+    .list{display:none}
+    .table{display:block}
+  }
+
+  .row{
+    display:grid;gap:8px;
+    grid-template-columns:1fr;
+  }
+  .row .meta{display:flex;flex-wrap:wrap;gap:8px}
+  .badge{
+    display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;border:1px solid var(--border);background:#fff;font-size:12px
+  }
+
+  .status{font-size:12px;font-weight:700;border-radius:999px;padding:4px 10px;display:inline-block}
+  .status.confirmed{background:#ecfdf5;color:#065f46;border:1px solid #bbf7d0}
+  .status.pending{background:#fff7ed;color:#7c2d12;border:1px solid #fed7aa}
+  .status.cancelled{background:#fef2f2;color:#991b1b;border:1px solid #fecaca}
+  .status.completed{background:#eef2ff;color:#3730a3;border:1px solid #c7d2fe}
+
+  .row-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+
+  table{width:100%;border-collapse:separate;border-spacing:0;background:#fff;border:1px solid var(--border);border-radius:16px;overflow:hidden}
+  thead th{background:#f1f5ff;color:#0a5fb4;text-align:left;font-size:13px;padding:10px;border-bottom:1px solid var(--border)}
+  tbody td{padding:10px;border-bottom:1px solid #f1f5f9;font-size:14px}
+  tbody tr:last-child td{border-bottom:none}
+
+  .muted{color:var(--muted);font-size:12px}
+
+  @media print{
+    .filterbar,.tabs,.actions-top{display:none!important}
+    .page{padding:0}
+  }
+</style>
+
+<div class="page">
+  <!-- Header -->
+  <div class="header">
+    <h1>My Bookings / मेरी बुकिंग</h1>
+    <span class="pill" title="Patient / मरीज">
+      <!-- user icon -->
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="8" r="4" stroke-width="1.5"/><path stroke-width="1.5" d="M4 20a8 8 0 0 1 16 0"/></svg>
+      <strong><%= patient?.name || '-' %></strong> • <%= patient?.phone || '-' %>
+    </span>
+    <% if (patient?.lastDoctorId) { %>
+      <a class="pill" href="/queue" title="View Live Queue / लाइव क्यू देखें">
+        <!-- refresh -->
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-width="1.5" d="M3 12a9 9 0 1 0 3-6.7M3 4v4h4"/></svg>
+        Live Queue / लाइव क्यू
+      </a>
+    <% } %>
+    <div class="actions-top">
+      <form method="post" action="/my/logout" style="display:inline">
+        <button class="btn">
+          <!-- switch -->
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-width="1.6" d="M7 7h7a4 4 0 0 1 0 8H7m0 0 3-3m-3 3 3 3"/></svg>
+          Switch User / उपयोगकर्ता बदलें
+        </button>
+      </form>
+      <button class="btn" onclick="window.print()">
+        <!-- print -->
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-width="1.5" d="M6 9V3h12v6M6 18h12v3H6z"/><rect x="3" y="9" width="18" height="8" rx="2" stroke-width="1.5"/></svg>
+        Print / प्रिंट
+      </button>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs" role="tablist">
+    <button class="tab active" id="tab-upcoming" role="tab" aria-controls="panel-upcoming" aria-selected="true">
+      Upcoming / आगामी <span class="count"><%= upcoming.length %></span>
+    </button>
+    <button class="tab" id="tab-past" role="tab" aria-controls="panel-past" aria-selected="false">
+      Past / पिछले <span class="count"><%= past.length %></span>
+    </button>
+  </div>
+
+  <!-- Filters -->
+  <div class="filterbar">
+    <input type="search" id="q" class="input" placeholder="Search doctor/hospital/city / खोजें: डॉक्टर/अस्पताल/शहर">
+  </div>
+
+  <!-- UPCOMING -->
+  <section id="panel-upcoming" role="tabpanel" aria-labelledby="tab-upcoming">
+    <!-- Mobile cards -->
+    <div class="list" id="list-upcoming">
+      <% if (!upcoming.length) { %>
+        <div class="card"><div class="muted">No upcoming bookings / कोई आगामी बुकिंग नहीं</div></div>
+      <% } %>
+      <% upcoming.forEach(r=>{ %>
+        <div class="card row" data-search="<%- [r.doctor_name, r.hospital_name, r.city, r.status, r.appointment_no].filter(Boolean).join(' ').toLowerCase() %>">
+          <div class="meta">
+            <span class="badge"><strong><%= r.appointment_date %></strong> • <%= r.appointment_time.slice(0,5) %></span>
+            <span class="badge">No / नंबर: <strong><%= r.appointment_no %></strong></span>
+            <span class="badge">City / शहर: <%= r.city %></span>
+            <span class="status <%= (r.status||'').toLowerCase() %>"><%= r.status %></span>
+          </div>
+          <div>
+            <div style="font-weight:700;margin-top:6px;"><%= r.doctor_name %></div>
+            <div class="muted"><%= r.hospital_name || '-' %></div>
+          </div>
+          <div class="row-actions">
+            <% if (r.doctor_id) { %>
+              <a class="btn" href="/queue?doctor_id=<%= r.doctor_id %>">Live Queue / लाइव क्यू</a>
+            <% } %>
+          </div>
+        </div>
+      <% }) %>
+    </div>
+
+    <!-- Desktop table -->
+    <div class="table">
+      <table>
+        <thead>
+          <tr>
+            <th>Date / तारीख</th><th>Time / समय</th><th>No / नंबर</th>
+            <th>Doctor / डॉक्टर</th><th>Hospital / अस्पताल</th><th>City / शहर</th><th>Status / स्थिति</th><th>Actions / क्रियाएँ</th>
+          </tr>
+        </thead>
+        <tbody id="tbl-upcoming">
+          <% if (!upcoming.length) { %>
+            <tr><td colspan="8">No upcoming bookings / कोई आगामी बुकिंग नहीं</td></tr>
+          <% } %>
+          <% upcoming.forEach(r=>{ %>
+            <tr data-search="<%- [r.doctor_name, r.hospital_name, r.city, r.status, r.appointment_no].filter(Boolean).join(' ').toLowerCase() %>">
+           <td><%= new Date(r.appointment_date).toLocaleDateString("en-IN", {
+  day: "2-digit",
+  month: "short",
+  year: "numeric"
+}) %></td>
+              <td><%= r.appointment_time.slice(0,5) %></td>
+              <td><%= r.appointment_no %></td>
+              <td><%= r.doctor_name %></td>
+              <td><%= r.hospital_name || '-' %></td>
+              <td><%= r.city %></td>
+              <td>
+                <div style="display:flex;gap:6px;flex-wrap:wrap">
+                  <% if (r.doctor_id) { %>
+                    <a class="btn" href="/queue?doctor_id=<%= r.doctor_id %>">Live Queue</a>
+                  <% } %>
+                </div>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- PAST -->
+  <section id="panel-past" role="tabpanel" aria-labelledby="tab-past" hidden>
+    <!-- Mobile cards -->
+    <div class="list" id="list-past">
+      <% if (!past.length) { %>
+        <div class="card"><div class="muted">No past bookings / कोई पिछली बुकिंग नहीं</div></div>
+      <% } %>
+      <% past.forEach(r=>{ %>
+        <div class="card row" data-search="<%- [r.doctor_name, r.hospital_name, r.city, r.status, r.appointment_no].filter(Boolean).join(' ').toLowerCase() %>">
+          <div class="meta">
+            <span class="badge"><strong><%= r.appointment_date %></strong> • <%= r.appointment_time.slice(0,5) %></span>
+            <span class="badge">No / नंबर: <strong><%= r.appointment_no %></strong></span>
+            <span class="badge">City / शहर: <%= r.city %></span>
+            <span class="status <%= (r.status||'').toLowerCase() %>"><%= r.status %></span>
+          </div>
+          <div>
+            <div style="font-weight:700;margin-top:6px;"><%= r.doctor_name %></div>
+            <div class="muted"><%= r.hospital_name || '-' %></div>
+          </div>
+        
+        </div>
+      <% }) %>
+    </div>
+
+    <!-- Desktop table -->
+    <div class="table">
+      <table>
+        <thead>
+          <tr>
+            <th>Date / तारीख</th><th>Time / समय</th><th>No / नंबर</th>
+            <th>Doctor / डॉक्टर</th><th>Hospital / अस्पताल</th><th>City / शहर</th><th>Status / स्थिति</th><th>Actions / क्रियाएँ</th>
+          </tr>
+        </thead>
+        <tbody id="tbl-past">
+          <% if (!past.length) { %>
+            <tr><td colspan="8">No past bookings / कोई पिछली बुकिंग नहीं</td></tr>
+          <% } %>
+          <% past.forEach(r=>{ %>
+            <tr data-search="<%- [r.doctor_name, r.hospital_name, r.city, r.status, r.appointment_no].filter(Boolean).join(' ').toLowerCase() %>">
+            <td><%= new Date(r.appointment_date).toLocaleDateString("en-IN", {
+  day: "2-digit",
+  month: "short",
+  year: "numeric"
+}) %></td>
+              <td><%= r.appointment_time.slice(0,5) %></td>
+              <td><%= r.appointment_no %></td>
+              <td><%= r.doctor_name %></td>
+              <td><%= r.hospital_name || '-' %></td>
+              <td><%= r.city %></td>
+              <td><span class="status <%= (r.status||'').toLowerCase() %>"><%= r.status %></span></td>
+              <td>
+                <div style="display:flex;gap:6px;flex-wrap:wrap">
+                </div>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<script>
+  // Tabs
+  const tabUpcoming = document.getElementById('tab-upcoming');
+  const tabPast     = document.getElementById('tab-past');
+  const panelUpcoming = document.getElementById('panel-upcoming');
+  const panelPast     = document.getElementById('panel-past');
+
+  function activate(tab){
+    const isUpcoming = tab === 'upcoming';
+    tabUpcoming.classList.toggle('active', isUpcoming);
+    tabPast.classList.toggle('active', !isUpcoming);
+    tabUpcoming.setAttribute('aria-selected', String(isUpcoming));
+    tabPast.setAttribute('aria-selected', String(!isUpcoming));
+    panelUpcoming.hidden = !isUpcoming;
+    panelPast.hidden = isUpcoming;
+    // Clear search box on switch for clarity
+    document.getElementById('q').value = '';
+    filterLists('');
+  }
+
+  tabUpcoming.addEventListener('click', ()=>activate('upcoming'));
+  tabPast.addEventListener('click', ()=>activate('past'));
+
+  // Search filter (client-side)
+  const q = document.getElementById('q');
+  q.addEventListener('input', (e)=> filterLists(e.target.value.toLowerCase()));
+
+  function filterLists(text){
+    // mobile lists
+    document.querySelectorAll('#list-upcoming .row, #list-past .row').forEach(el=>{
+      const k = el.getAttribute('data-search') || '';
+      el.style.display = k.includes(text) ? '' : 'none';
+    });
+    // desktop tables
+    document.querySelectorAll('#tbl-upcoming tr, #tbl-past tr').forEach(tr=>{
+      const k = tr.getAttribute('data-search') || '';
+      // keep "no rows" messages always visible (no data-search)
+      if (!k) return;
+      tr.style.display = k.includes(text) ? '' : 'none';
+    });
+  }
+
+  // Add to Calendar (ICS)
+  function addToCalendar(no, doc, hosp, city, dateStr, timeHHmm){
+    // dateStr: YYYY-MM-DD, timeHHmm: HH:MM (24h assumed)
+    const dt = (dateStr||'').replace(/-/g,''); // YYYYMMDD
+    const HHmm = (timeHHmm||'00:00').replace(':','');
+    // 30-minute slot
+    function plus30(hhmm){
+      const h = parseInt(hhmm.slice(0,2),10)||0, m = parseInt(hhmm.slice(2,4),10)||0;
+      const t = h*60+m+30, nh = String(Math.floor(t/60)).padStart(2,'0'), nm = String(t%60).padStart(2,'0');
+      return nh+nm;
+    }
+    const dtstart = `${dt}T${HHmm}00`;
+    const dtend   = `${dt}T${plus30(HHmm)}00`;
+    const title = `Appointment: ${doc}`;
+    const loc   = `${hosp}, ${city}`;
+    const desc  = `Appointment No: ${no}`;
+
+    const ics = `BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Tap2Doctor//MyBookings//EN
+BEGIN:VEVENT
+UID:${no}@tap2doctor
+DTSTAMP:${dtstart}
+DTSTART:${dtstart}
+DTEND:${dtend}
+SUMMARY:${title}
+LOCATION:${loc}
+DESCRIPTION:${desc}
+END:VEVENT
+END:VCALENDAR`;
+
+    const blob = new Blob([ics], {type:'text/calendar;charset=utf-8'});
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url; a.download = `Tap2Doctor-${no}.ics`;
+    document.body.appendChild(a); a.click();
+    setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); }, 0);
+  }
+</script>
+
+<%- include('../partials/footer') %>

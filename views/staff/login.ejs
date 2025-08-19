@@ -1,0 +1,8 @@
+<%- include('../layout.ejs') %>
+<h2>Staff Login</h2>
+<% if (errors.length) { %><ul class="error"><% errors.forEach(e=>{ %><li><%= e.msg %></li><% }) %></ul><% } %>
+<form method="post" action="/staff/login">
+  <label>Email <input name="email" type="email" value="<%= email %>" required></label>
+  <label>Password <input name="password" type="password" required></label>
+  <button>Login</button>
+</form>

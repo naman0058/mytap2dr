@@ -1,0 +1,45 @@
+<%- include('../layout.ejs') %>
+
+<h2><%= editing ? 'Edit Exception' : 'New Exception' %></h2>
+
+<% if (errors.length) { %>
+  <ul class="error"><% errors.forEach(e => { %><li><%= e.msg %></li><% }) %></ul>
+<% } %>
+
+<form method="post" action="<%= editing ? '/exceptions/' + row.exception_id : '/exceptions' %>">
+  <label>Doctor
+    <select name="doctor_id" required>
+      <option value="">-- choose --</option>
+      <% doctors.forEach(d => { %>
+        <option value="<%= d.doctor_id %>" <%= row.doctor_id == d.doctor_id ? 'selected':'' %>>
+          <%= d.city %> — <%= d.doctor_name %>
+        </option>
+      <% }) %>
+    </select>
+  </label>
+
+  <label>Date <input type="date" name="exception_date" value="<%= row.exception_date ? new Date(row.exception_date).toISOString().slice(0,10) : '' %>" required></label>
+
+  <label>
+    <input type="checkbox" name="is_closed" <%= row.is_closed ? 'checked':'' %> />
+    Closed all day
+  </label>
+
+  <div id="timeRange">
+    <label>Start Time <input type="time" name="start_time" value="<%= row.start_time || '' %>"></label>
+    <label>End Time <input type="time" name="end_time" value="<%= row.end_time || '' %>"></label>
+  </div>
+
+  <label>Reason <input name="reason" value="<%= row.reason || '' %>" /></label>
+
+  <button><%= editing ? 'Update' : 'Create' %></button>
+  <a href="/exceptions">Cancel</a>
+</form>
+
+<script>
+  const closed = document.querySelector('input[name="is_closed"]');
+  const timeRange = document.getElementById('timeRange');
+  function toggleTimes(){ timeRange.style.display = closed.checked ? 'none' : 'block'; }
+  closed.addEventListener('change', toggleTimes);
+  toggleTimes();
+</script>

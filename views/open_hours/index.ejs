@@ -1,0 +1,27 @@
+<%- include('../layout.ejs') %>
+
+<h2>Open Hours</h2>
+<p><a href="/open-hours/new">+ Add Hours</a></p>
+<table>
+  <thead>
+    <tr><th>Doctor</th><th>Day</th><th>Slot</th><th>Start</th><th>End</th><th></th></tr>
+  </thead>
+  <tbody>
+  <% rows.forEach(r => { %>
+    <tr>
+      <td><%= r.doctor_name %></td>
+      <td><%= dayNames[r.day_of_week - 1] %></td>
+      <td>#<%= r.slot_index %></td>
+      <td><%= r.start_time %></td>
+      <td><%= r.end_time %></td>
+      <td class="actions">
+        <a href="/open-hours/<%= r.open_hours_id %>">View</a>
+        <a href="/open-hours/<%= r.open_hours_id %>/edit">Edit</a>
+        <form action="/open-hours/<%= r.open_hours_id %>?_method=DELETE" method="post" onsubmit="return confirm('Delete hours?');">
+          <button>Delete</button>
+        </form>
+      </td>
+    </tr>
+  <% }) %>
+  </tbody>
+</table>

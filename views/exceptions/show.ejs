@@ -1,0 +1,15 @@
+<%- include('../layout.ejs') %>
+
+<h2>Exception #<%= row.exception_id %></h2>
+<p>
+  <strong>Doctor:</strong> <%= row.doctor_name %> (<%= row.city %>)<br/>
+  <strong>Date:</strong> <%= new Date(row.exception_date).toISOString().slice(0,10) %><br/>
+  <strong>Closed?</strong> <%= row.is_closed ? 'Yes' : 'No' %><br/>
+  <strong>Start:</strong> <%= row.start_time || '-' %> |
+  <strong>End:</strong> <%= row.end_time || '-' %><br/>
+  <strong>Reason:</strong> <%= row.reason || '-' %>
+</p>
+<p class="actions">
+  <a href="/exceptions/<%= row.exception_id %>/edit">Edit</a>
+  <a href="/exceptions">Back</a>
+</p>

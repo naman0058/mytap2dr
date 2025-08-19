@@ -1,0 +1,31 @@
+<%- include('../layout.ejs') %>
+
+
+<h2>Doctors</h2>
+<p><a href="/doctors/new">+ New Doctor</a></p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Name</th><th>Specialist</th><th>Hospital</th><th>City</th><th>Fees</th><th>Booking</th><th></th>
+    </tr>
+  </thead>
+  <tbody>
+  <% doctors.forEach(d => { %>
+    <tr>
+      <td><a href="/doctors/<%= d.doctor_id %>"><%= d.doctor_name %></a></td>
+      <td><%= d.specialist || '-' %></td>
+      <td><%= d.hospital_name || '-' %></td>
+      <td><%= d.city %></td>
+      <td>₹<%= Number(d.doctor_fees).toFixed(2) %></td>
+      <td>₹<%= Number(d.booking_fees).toFixed(2) %></td>
+      <td class="actions">
+        <a href="/doctors/<%= d.doctor_id %>/edit">Edit</a>
+        <form action="/doctors/<%= d.doctor_id %>?_method=DELETE" method="post" onsubmit="return confirm('Delete doctor?');">
+          <button>Delete</button>
+        </form>
+      </td>
+    </tr>
+  <% }) %>
+  </tbody>
+</table>

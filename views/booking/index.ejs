@@ -1,0 +1,576 @@
+<%- include('../layout') %>
+
+<style>
+  :root{
+    --brand:#0b76e0; --brand-ink:#0a5fb4; --ink:#0f172a; --muted:#64748b; --border:#e2e8f0;
+    --bg:#f8fafc; --card:#ffffff; --danger:#dc2626;
+    --appbar-h:64px; --header-h:60px;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,"Noto Sans","Helvetica Neue",Arial}
+
+  /* Sticky Header */
+  .site-header{
+    position:sticky;top:0;z-index:60;height:var(--header-h);
+    background:#fff;border-bottom:1px solid var(--border);
+    display:flex;align-items:center;gap:10px;padding:0 14px;
+  }
+  .site-header .brand{display:flex;align-items:center;gap:10px}
+  .brand img{height:30px;width:30px;object-fit:contain}
+  .brand-name{font-weight:700;color:var(--brand-ink)}
+  .brand-tag{font-size:12px;color:var(--muted);margin-left:6px}
+
+  /* Page */
+  .page{max-width:980px;margin:0 auto;padding:14px; padding-bottom: calc(var(--appbar-h) + 20px);} /* prevent overlap */
+
+  /* Selection Chips (summary) */
+  .selection-header{
+    display:flex;flex-wrap:wrap;gap:8px;align-items:center;
+    background:#eef6ff;border:1px solid #dbeafe;border-radius:12px;
+    padding:10px;margin:10px 0 14px;
+  }
+  .selection-header h2{font-size:16px;margin:0 8px 0 0;color:var(--brand-ink)}
+  .chip{
+    display:inline-flex;align-items:center;gap:6px;
+    background:#fff;border:1px solid #dbeafe;border-radius:999px;
+    padding:6px 10px;font-size:13px;color:#0f172a;
+  }
+  .chip svg{width:16px;height:16px}
+  .chip .edit-btn{
+    margin-left:6px;border:none;background:#eef6ff;border:1px solid #dbeafe;color:#0a5fb4;
+    padding:2px 8px;border-radius:999px;cursor:pointer;font-size:12px;
+  }
+
+  /* Section Card */
+  .card{
+    background:var(--card);border:1px solid var(--border);border-radius:16px;
+    padding:14px;margin-bottom:14px; box-shadow:0 1px 1px rgba(0,0,0,.02),0 2px 10px rgba(0,0,0,.03);
+  }
+  .section-title{font-size:16px;font-weight:700;margin:0 0 10px}
+
+  /* Grid + Select Cards */
+  .grid{display:grid;gap:10px}
+  .grid.cities{grid-template-columns:repeat(2,1fr)}
+  .grid.doctors{grid-template-columns:1fr}
+  @media(min-width:640px){
+    .grid.cities{grid-template-columns:repeat(3,1fr)}
+    .grid.doctors{grid-template-columns:repeat(2,1fr)}
+  }
+  @media(min-width:900px){
+    .grid.cities{grid-template-columns:repeat(4,1fr)}
+    .grid.doctors{grid-template-columns:repeat(3,1fr)}
+  }
+
+  .select-card{
+    border:1px solid var(--border);border-radius:12px;background:#fff;
+    padding:12px;cursor:pointer; text-align:left; display:flex;gap:10px;align-items:flex-start;
+    transition:transform .08s ease, box-shadow .08s ease, border-color .08s ease;
+  }
+  .select-card:hover, .select-card:focus{outline:none;transform:translateY(-1px);box-shadow:0 2px 10px rgba(0,0,0,.05)}
+  .select-card[aria-pressed="true"]{border-color:#93c5fd; background:#f0f7ff}
+  .select-card .title{font-weight:600;color:black}
+  .select-card .sub{font-size:12px;color:var(--muted)}
+  .select-card .avatar{
+    width:36px;height:36px;border-radius:8px;background:#e2e8f0;display:inline-flex;align-items:center;justify-content:center
+  }
+
+  /* Date & Time */
+  .grid-2{display:grid;grid-template-columns:1fr;gap:12px}
+  @media(min-width:640px){ .grid-2{grid-template-columns:1fr 1fr} }
+  input[type="date"]{
+    width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:#fff;font-size:15px;color:black
+  }
+  input[disabled]{background:#f1f5f9;color:#94a3b8}
+  #slots{display:flex;flex-wrap:wrap;gap:8px}
+  .slot-btn{
+    border:1px solid var(--border);background:#fff;border-radius:10px;padding:8px 12px;cursor:pointer;font-size:14px
+  }
+  .slot-btn[disabled]{background:#e0f2fe;border-color:#bae6fd;cursor:default}
+
+  /* Form */
+  .field{margin-bottom:12px}
+  .field label span{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+  .input{
+    width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:#fff;font-size:15px
+  }
+  .btn-primary{
+    background:var(--brand);color:#fff;border:none;border-radius:10px;padding:12px 16px;font-size:15px;cursor:pointer
+  }
+  .btn-primary:disabled{background:#93c5fd;cursor:not-allowed}
+  .error{margin:0 0 10px;padding:10px 12px;background:#fff1f2;border:1px solid #fecdd3;border-radius:12px;color:var(--danger)}
+  .error li{margin-left:18px}
+
+  /* Steps */
+  .step{display:none}
+  .step.active{display:block}
+
+  /* Bottom App Bar (keep fixed; padding-bottom avoids overlap) */
+  .appbar{
+    position:fixed;left:0;right:0;bottom:0;height:var(--appbar-h);background:#fff;border-top:1px solid var(--border);
+    display:grid;grid-template-columns:repeat(3,1fr);padding:6px 10px;z-index:55;
+  }
+  .appbar a{
+    text-decoration:none;color:var(--muted);font-size:12px;display:flex;flex-direction:column;align-items:center;gap:4px;
+    padding:6px 8px;border-radius:10px
+  }
+  .appbar a.active{color:var(--brand-ink);background:#eef6ff}
+  .appbar svg{width:22px;height:22px}
+
+
+    input[type="date"]:not(:focus):not([value]):before {
+    content: attr(data-placeholder);
+    color: #888;
+    margin-right: .5rem;
+  }
+</style>
+
+<!-- Sticky Header -->
+<header class="site-header" role="banner">
+  <div class="brand">
+    <img src="/static/logo.svg" alt="Tap2Doctor logo" onerror="this.style.display='none'">
+    <div>
+      <div class="brand-name">Tap2Doctor</div>
+      <div class="brand-tag">Healthcare • हेल्थकेयर</div>
+    </div>
+  </div>
+</header>
+
+<div class="page">
+  <!-- Live selection chips -->
+  <div class="selection-header" aria-live="polite">
+    <h2>अपॉइंटमेंट / Appointment</h2>
+
+   <div class="chip" id="chip-city" title="City / शहर">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+    <path stroke-width="1.5" d="M12 21s-7-5.5-7-11a7 7 0 0 1 14 0c0 5.5-7 11-7 11Z"/>
+    <circle cx="12" cy="10" r="3" stroke-width="1.5"/>
+  </svg>
+  <span><strong>City:</strong> 
+    <span data-text>
+      <%= lockDoctor && lockedDoctor ? lockedDoctor.city : '—' %>
+    </span>
+  </span>
+  <% if (!(lockDoctor && lockedDoctor)) { %>
+    <button type="button" class="edit-btn" id="edit-city">Change / बदलाव</button>
+  <% } %>
+</div>
+
+<div class="chip" id="chip-doctor" title="Doctor / डॉक्टर">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+    <circle cx="12" cy="8" r="4" stroke-width="1.5"/>
+    <path stroke-width="1.5" d="M4 20a8 8 0 0 1 16 0"/>
+  </svg>
+  <span><strong>Doctor:</strong> 
+    <span data-text>
+      <%= lockDoctor && lockedDoctor 
+          ? `${lockedDoctor.doctor_name} — ${lockedDoctor.hospital_name || ''} ${lockedDoctor.specialist ? '('+lockedDoctor.specialist+')' : ''}` 
+          : '—' %>
+    </span>
+  </span>
+  <% if (!(lockDoctor && lockedDoctor)) { %>
+    <button type="button" class="edit-btn" id="edit-doctor">Change / बदलाव</button>
+  <% } %>
+</div>
+
+    <div class="chip" id="chip-date" title="Date / तारीख">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="2" stroke-width="1.5"/><path stroke-width="1.5" d="M8 2v4M16 2v4M3 10h18"/></svg>
+      <span><strong>Date:</strong> <span data-text>—</span></span>
+    </div>
+
+    <div class="chip" id="chip-time" title="Time / समय">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9" stroke-width="1.5"/><path stroke-width="1.5" d="M12 7v5l3 2"/></svg>
+      <span><strong>Time:</strong> <span data-text>—</span></span>
+    </div>
+  </div>
+
+  <!-- Errors -->
+  <% if (errors && errors.length) { %>
+    <ul class="error">
+      <% errors.forEach(function(e){ %><li><%= e.msg %></li><% }) %>
+    </ul>
+  <% } %>
+
+  <!-- STEP 1: City (Cards) -->
+  <section class="card step active" id="step-city" aria-labelledby="city-label">
+    <p class="section-title" id="city-label">City / शहर चुनें</p>
+    <% if (lockDoctor && lockedDoctor) { %>
+      <div class="select-card" aria-pressed="true" tabindex="0">
+        <div class="avatar">🏙️</div>
+        <div>
+          <div class="title"><%= lockedDoctor.city %></div>
+          <div class="sub">Selected / चुना गया</div>
+        </div>
+      </div>
+      <input type="hidden" id="city" value="<%= lockedDoctor.city %>">
+    <% } else { %>
+      <div class="field"><input id="city-search" class="input" type="text" placeholder="Search city / शहर खोजें"></div>
+      <div class="grid cities" id="cities-grid">
+        <% (cities || []).forEach(function(c){ %>
+          <button class="select-card city-item" type="button" data-city="<%= c.city %>" aria-pressed="false">
+            <div class="avatar">🏙️</div>
+            <div>
+              <div class="title"><%= c.city %></div>
+              <div class="sub">Tap to select / चुनें</div>
+            </div>
+          </button>
+        <% }) %>
+      </div>
+      <input type="hidden" id="city" value="<%= chosenCity || '' %>">
+    <% } %>
+  </section>
+
+  <!-- STEP 2: Doctor (Cards) -->
+  <section class="card step <%= lockDoctor ? 'active' : '' %>" id="step-doctor" aria-labelledby="doctor-label">
+    <p class="section-title" id="doctor-label">Doctor / डॉक्टर चुनें</p>
+    <% if (lockDoctor && lockedDoctor) { %>
+      <div class="select-card" aria-pressed="true" tabindex="0">
+        <div class="avatar">🩺</div>
+        <div>
+          <div class="title"><%= lockedDoctor.doctor_name %></div>
+          <div class="sub"><%= lockedDoctor.hospital_name || '' %> <%= lockedDoctor.specialist ? '('+lockedDoctor.specialist+')' : '' %></div>
+        </div>
+      </div>
+      <select id="doctor" style="display:none">
+        <option value="<%= lockedDoctor.doctor_id %>" selected><%= lockedDoctor.doctor_name %></option>
+      </select>
+    <% } else { %>
+      <div class="field"><input id="doctor-search" class="input" type="text" placeholder="Search doctor / डॉक्टर खोजें" disabled></div>
+      <div class="grid doctors" id="doctors-grid" data-empty="Select city first / पहले शहर चुनें"></div>
+      <select id="doctor" style="display:none"></select>
+    <% } %>
+  </section>
+
+  <!-- STEP 3: Date & Time -->
+  <section class="card step <%= lockDoctor ? 'active' : '' %>" id="step-datetime" aria-labelledby="dt-label">
+    <p class="section-title" id="dt-label">Date & Time / तारीख व समय</p>
+    <div class="grid-2">
+      <div class="field">
+        <label><span>Date / तारीख</span>
+          <input 
+    type="date" 
+    id="date" 
+    data-placeholder="Select Date" 
+    min="<%= new Date().toISOString().slice(0,10) %>" 
+    <%= (lockDoctor ? '' : 'disabled') %> 
+  />
+        </label>
+      </div>
+      <div class="field">
+        <span style="display:block;font-size:13px;color:var(--muted);margin-bottom:6px;">Time / समय</span>
+        <div id="slots" aria-live="polite"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STEP 4: Patient Details -->
+  <section class="card step" id="step-form" aria-labelledby="form-label">
+    <p class="section-title" id="form-label">Your Details / आपकी जानकारी</p>
+    <form id="bookForm" method="post" action="/booking">
+      <input type="hidden" name="prefill_locked" value="<%= lockDoctor ? '1' : '0' %>">
+      <input type="hidden" name="city" id="f_city" value="<%= lockDoctor && lockedDoctor ? lockedDoctor.city : '' %>">
+      <input type="hidden" name="doctor_id" id="f_doctor" value="<%= lockDoctor && lockedDoctor ? lockedDoctor.doctor_id : '' %>">
+      <input type="hidden" name="appointment_date" id="f_date">
+      <input type="hidden" name="appointment_time" id="f_time">
+
+      <div class="grid-2">
+        <label class="field"><span>Full Name / पूरा नाम</span>
+          <input name="patient_name" class="input" type="text" placeholder="e.g., Ramesh Kumar / रमेश कुमार" required autocomplete="name">
+        </label>
+        <label class="field"><span>Mobile Number / मोबाइल नंबर</span>
+          <input name="patient_phone" class="input" type="tel" placeholder="10-digit / 10 अंकों का" pattern="[0-9]{10}" maxlength="10" required autocomplete="tel">
+        </label>
+      </div>
+      <button type="submit" class="btn-primary">Book Appointment / अपॉइंटमेंट बुक करें</button>
+    </form>
+  </section>
+</div>
+
+<!-- Optional Bottom App Bar (fixed, won’t overlap due to padding) -->
+<!--
+<nav class="appbar" role="navigation" aria-label="Primary">
+  <a href="/" class="active">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-width="1.5" d="M3 10.5 12 3l9 7.5V21a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-10.5z"/></svg>
+    <span>Home / होम</span>
+  </a>
+  <a href="/tracking">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-width="1.5" d="M21 10c0 7-9 12-9 12S3 17 3 10a9 9 0 1 1 18 0Z"/><circle cx="12" cy="10" r="3" stroke-width="1.5"/></svg>
+    <span>Live Tracking / लाइव</span>
+  </a>
+  <a href="/my-bookings">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="2" stroke-width="1.5"/><path stroke-width="1.5" d="M3 8h18M8 2v4M16 2v4M7 12h5M7 16h10"/></svg>
+    <span>My Booking / मेरी बुकिंग</span>
+  </a>
+</nav>
+-->
+
+<script>
+  // ===== Server flags =====
+  const lockDoctor   = <%= lockDoctor ? 'true' : 'false' %>;
+  const lockedDoctor = <%- JSON.stringify(lockedDoctor || null) %>;
+
+  // ===== DOM =====
+  const stepCity   = document.getElementById('step-city');
+  const stepDoctor = document.getElementById('step-doctor');
+  const stepDT     = document.getElementById('step-datetime');
+  const stepForm   = document.getElementById('step-form');
+
+  const citiesGrid   = document.getElementById('cities-grid');
+  const citySearch   = document.getElementById('city-search');
+  const doctorsGrid  = document.getElementById('doctors-grid');
+  const doctorHidden = document.getElementById('doctor'); // hidden select for form compatibility
+
+  const cityInp    = document.getElementById('city');
+  const dateInp    = document.getElementById('date');
+  const slotsDiv   = document.getElementById('slots');
+  const form       = document.getElementById('bookForm');
+
+  const f_city = document.getElementById('f_city');
+  const f_doc  = document.getElementById('f_doctor');
+  const f_date = document.getElementById('f_date');
+  const f_time = document.getElementById('f_time');
+
+  // Chips + edit buttons
+  const chipCity = document.querySelector('#chip-city [data-text]');
+  const chipDoc  = document.querySelector('#chip-doctor [data-text]');
+  const chipDate = document.querySelector('#chip-date [data-text]');
+  const chipTime = document.querySelector('#chip-time [data-text]');
+  const editCityBtn   = document.getElementById('edit-city');
+  const editDoctorBtn = document.getElementById('edit-doctor');
+
+  // Utils
+  const show = el => el.classList.add('active');
+  const hide = el => el.classList.remove('active');
+  const clear = el => { while(el.firstChild) el.removeChild(el.firstChild); }
+
+  function updateChips(){
+    chipCity.textContent = cityInp?.value || (lockedDoctor?.city || '—');
+    chipDoc.textContent  = f_doc.dataset.label || (lockDoctor && lockedDoctor
+                          ? `${lockedDoctor.doctor_name}${lockedDoctor.hospital_name ? ' — ' + lockedDoctor.hospital_name : ''}${lockedDoctor.specialist ? ' ('+lockedDoctor.specialist+')' : ''}`
+                          : '—');
+    chipDate.textContent = f_date.value || dateInp.value || '—';
+    chipTime.textContent = f_time.value || '—';
+  }
+
+  function markPressed(btnGroup, target){
+    btnGroup.querySelectorAll('.select-card').forEach(b=>b.setAttribute('aria-pressed','false'));
+    target.setAttribute('aria-pressed','true');
+  }
+
+  function collapseCityStep(){
+    hide(stepCity); // hide city chooser
+    show(stepDoctor); // move to doctor selection
+  }
+
+  function collapseDoctorStep(){
+    hide(stepDoctor); // hide doctor chooser
+    // date/time remains visible once doctor chosen
+  }
+
+  function reopenCity(){
+    show(stepCity);
+    hide(stepDoctor);
+    hide(stepDT);
+    hide(stepForm);
+    dateInp.value = '';
+    f_date.value = '';
+    f_time.value = '';
+    clear(slotsDiv);
+    // reset doctor selection
+    f_doc.value = '';
+    f_doc.dataset.label = '';
+    updateChips();
+    stepCity.scrollIntoView({behavior:'smooth', block:'start'});
+  }
+
+  function reopenDoctor(){
+    if (!cityInp.value && !(lockDoctor && lockedDoctor)){ // safety: need city first
+      show(stepCity);
+      hide(stepDoctor);
+    } else {
+      hide(stepCity);
+      show(stepDoctor);
+    }
+    hide(stepDT); hide(stepForm);
+    dateInp.value = '';
+    f_date.value = '';
+    f_time.value = '';
+    clear(slotsDiv);
+    // clear doctor
+    if (!lockDoctor){
+      f_doc.value = '';
+      f_doc.dataset.label = '';
+      // visually unmark pressed cards
+      doctorsGrid?.querySelectorAll('.doctor-item').forEach(b=>b.setAttribute('aria-pressed','false'));
+    }
+    updateChips();
+    stepDoctor.scrollIntoView({behavior:'smooth', block:'start'});
+  }
+
+  // INIT for locked mode
+  if (lockDoctor && lockedDoctor) {
+    f_doc.value  = String(lockedDoctor.doctor_id);
+    f_doc.dataset.label = `${lockedDoctor.doctor_name}${lockedDoctor.hospital_name ? ' — ' + lockedDoctor.hospital_name : ''}${lockedDoctor.specialist ? ' ('+lockedDoctor.specialist+')' : ''}`;
+    f_city.value = lockedDoctor.city || '';
+    hide(stepCity);
+    hide(stepDoctor);
+    show(stepDT);
+  }
+  updateChips();
+
+  // CITY — load and collapse after pick
+  if (!lockDoctor && citiesGrid){
+    if (cityInp.value){
+      const match = [...citiesGrid.querySelectorAll('.city-item')].find(b => b.dataset.city === cityInp.value);
+      if (match){ markPressed(citiesGrid, match); }
+      collapseCityStep();
+      loadDoctorsForCity(cityInp.value);
+    }
+
+    citiesGrid.addEventListener('click', async (e)=>{
+      const btn = e.target.closest('.city-item');
+      if(!btn) return;
+      cityInp.value = btn.dataset.city;
+      markPressed(citiesGrid, btn);
+      // sync hidden form field
+      f_city.value = cityInp.value;
+      collapseCityStep(); // hide city step right away
+      clear(doctorsGrid);
+      doctorsGrid.setAttribute('data-empty','Loading doctors… / डॉक्टर लोड हो रहे हैं…');
+      await loadDoctorsForCity(cityInp.value);
+      updateChips();
+      stepDoctor.scrollIntoView({behavior:'smooth', block:'start'});
+    });
+
+    citiesGrid.addEventListener('keydown',(e)=>{
+      if(e.key==='Enter' || e.key===' '){
+        const btn = e.target.closest('.city-item'); if(btn){ btn.click(); e.preventDefault(); }
+      }
+    });
+
+    citySearch?.addEventListener('input',()=>{
+      const q = citySearch.value.toLowerCase();
+      citiesGrid.querySelectorAll('.city-item').forEach(b=>{
+        const showIt = b.dataset.city.toLowerCase().includes(q);
+        b.style.display = showIt ? '' : 'none';
+      });
+    });
+  }
+
+  async function loadDoctorsForCity(city){
+    try{
+      const res = await fetch(`/booking/api/doctors?city=${encodeURIComponent(city)}`);
+      const docs = await res.json();
+      clear(doctorsGrid);
+      if (!Array.isArray(docs) || !docs.length){
+        doctorsGrid.setAttribute('data-empty','No doctors found / कोई डॉक्टर नहीं मिला');
+        hide(stepDT); hide(stepForm); dateInp.disabled = true; f_doc.value=''; f_doc.dataset.label=''; updateChips();
+        return;
+      }
+      doctorHidden.innerHTML = '<option value=""></option>';
+      docs.forEach(d=>{
+        const label = `${d.doctor_name} — ${d.hospital_name || ''} ${d.specialist ? '('+d.specialist+')' : ''}`;
+        const btn = document.createElement('button');
+        btn.type='button'; btn.className='select-card doctor-item'; btn.setAttribute('aria-pressed','false');
+        btn.innerHTML = `<div class="avatar">🩺</div><div><div class="title">${d.doctor_name}</div><div class="sub">${d.hospital_name || ''} ${d.specialist ? '('+d.specialist+')':''}</div></div>`;
+        btn.dataset.id = d.doctor_id; btn.dataset.label = label.trim();
+        doctorsGrid.appendChild(btn);
+
+        const opt = document.createElement('option'); opt.value = d.doctor_id; opt.textContent = label.trim();
+        doctorHidden.appendChild(opt);
+      });
+      const docSearch = document.getElementById('doctor-search'); docSearch.disabled = false;
+    }catch(err){
+      console.error(err);
+      clear(doctorsGrid);
+      doctorsGrid.setAttribute('data-empty','Unable to load doctors / डॉक्टर लोड नहीं हो पाए');
+      alert('Unable to load doctors. कृपया दोबारा प्रयास करें।');
+    }
+  }
+
+  // DOCTOR — choose and collapse doctor step
+  if (!lockDoctor){
+    doctorsGrid?.addEventListener('click', (e)=>{
+      const btn = e.target.closest('.doctor-item'); if(!btn) return;
+      markPressed(doctorsGrid, btn);
+      f_doc.value = String(btn.dataset.id);
+      f_doc.dataset.label = btn.dataset.label || '';
+      doctorHidden.value = f_doc.value;
+
+      // enable date step
+      dateInp.disabled = false; show(stepDT);
+      // reset time + form
+      clear(slotsDiv); hide(stepForm); f_time.value=''; f_date.value=''; updateChips();
+
+      // collapse doctor step after selection
+      collapseDoctorStep();
+      stepDT.scrollIntoView({behavior:'smooth', block:'start'});
+    });
+
+    document.getElementById('doctor-search')?.addEventListener('input', (e)=>{
+      const q = e.target.value.toLowerCase();
+      doctorsGrid.querySelectorAll('.doctor-item').forEach(b=>{
+        const text = (b.dataset.label || '').toLowerCase();
+        b.style.display = text.includes(q) ? '' : 'none';
+      });
+    });
+  }
+
+  // DATE -> SLOTS
+  dateInp.addEventListener('change', async()=>{
+    clear(slotsDiv); hide(stepForm); f_time.value='';
+    const doctorId = lockDoctor ? lockedDoctor?.doctor_id : f_doc.value;
+    const city     = lockDoctor ? (lockedDoctor?.city || f_city.value) : (cityInp?.value || f_city.value);
+    if (!doctorId || !city || !dateInp.value){ updateChips(); return; }
+
+    f_city.value = city; f_date.value = dateInp.value;
+
+    try{
+      const url = `/booking/api/slots?doctor_id=${doctorId}&date=${dateInp.value}`;
+      const res = await fetch(url);
+      const slots = await res.json();
+
+      if (Array.isArray(slots) && slots.length){
+        slots.forEach(t=>{
+          const b = document.createElement('button');
+          b.type='button'; b.className='slot-btn'; b.textContent = t;
+          b.addEventListener('click', ()=>{
+            [...slotsDiv.querySelectorAll('button')].forEach(x=>x.disabled=false);
+            b.disabled = true; f_time.value = t; updateChips();
+            show(stepForm);
+            stepForm.scrollIntoView({behavior:'smooth', block:'start'});
+          });
+          slotsDiv.appendChild(b);
+        });
+      }else{
+        const p = document.createElement('p'); p.textContent = 'No slots available for this date. / इस तारीख के लिए स्लॉट उपलब्ध नहीं हैं।';
+        slotsDiv.appendChild(p);
+      }
+    }catch(err){
+      console.error(err);
+      const p = document.createElement('p'); p.textContent='Could not load time slots. / स्लॉट लोड नहीं हो पाए।';
+      slotsDiv.appendChild(p);
+    }
+  });
+
+  // Submit guard
+  form.addEventListener('submit',(e)=>{
+    if (!f_city.value || !f_doc.value || !f_date.value || !f_time.value){
+      e.preventDefault();
+      alert('Please complete all steps (City, Doctor, Date, Time). / कृपया सभी स्टेप्स पूरा करें (शहर, डॉक्टर, तारीख, समय)।');
+    }
+  });
+
+  // Edit buttons to reopen cards
+  editCityBtn?.addEventListener('click', reopenCity);
+  editDoctorBtn?.addEventListener('click', reopenDoctor);
+
+  // Prefill hidden city if locked
+  if (lockDoctor && lockedDoctor){ f_city.value = lockedDoctor.city || ''; }
+
+  updateChips();
+</script>
+
+
+<%- include('../partials/footer') %>
+

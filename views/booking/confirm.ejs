@@ -1,0 +1,234 @@
+<%- include('../layout') %>
+
+<style>
+  :root{
+    --brand:#0b76e0; --brand-ink:#0a5fb4; --ink:#0f172a; --muted:#64748b; --border:#e2e8f0;
+    --bg:#f8fafc; --card:#ffffff; --success:#16a34a;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,"Noto Sans","Helvetica Neue",Arial}
+  .page{max-width:900px;margin:0 auto;padding:16px}
+
+  /* Success header */
+  .success-header{
+    display:flex;gap:12px;align-items:center;
+    background:#ecfdf5;border:1px solid #bbf7d0;border-radius:16px;
+    padding:14px;margin:10px 0 16px;
+  }
+  .success-header .icon{
+    width:38px;height:38px;border-radius:999px;background:#d1fae5;display:flex;align-items:center;justify-content:center;
+    color:var(--success);
+  }
+  .success-title{margin:0;font-size:18px;color:#065f46;font-weight:800}
+  .success-sub{margin:2px 0 0;color:#065f46;font-size:13px}
+
+  /* Card */
+  .card{
+    background:var(--card);border:1px solid var(--border);border-radius:16px;
+    padding:16px;margin-bottom:14px; box-shadow:0 1px 1px rgba(0,0,0,.02),0 2px 10px rgba(0,0,0,.03);
+  }
+
+  /* Detail grid */
+  .grid{display:grid;gap:10px}
+  .grid.cols-2{grid-template-columns:1fr}
+  @media(min-width:640px){ .grid.cols-2{grid-template-columns:1fr 1fr} }
+
+  .row{
+    display:flex;gap:10px;align-items:flex-start;border:1px dashed #e5e7eb;border-radius:12px;padding:10px;background:#fff;
+  }
+  .label{min-width:140px;font-size:12px;color:var(--muted)}
+  .value{font-weight:600}
+
+  /* Actions */
+  .actions{display:grid;gap:10px;grid-template-columns:1fr}
+  @media(min-width:640px){ .actions{grid-template-columns:repeat(3,1fr)} }
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:8px;
+    padding:12px;border-radius:12px;border:1px solid var(--border);background:#fff;cursor:pointer;text-decoration:none;color:var(--ink);font-weight:600
+  }
+  .btn.primary{background:var(--brand);color:#fff;border-color:transparent}
+  .btn svg{width:18px;height:18px}
+
+  /* Footer links */
+  .footer-links{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}
+  .link{color:var(--brand-ink);text-decoration:none;border:1px solid #dbeafe;background:#eef6ff;padding:8px 12px;border-radius:10px;font-size:14px}
+
+  /* Print optimizations */
+  @media print{
+    .actions, .footer-links { display:none !important; }
+    .page{padding:0}
+  }
+</style>
+
+<div class="page">
+  <!-- Success banner -->
+  <div class="success-header">
+    <div class="icon" aria-hidden="true">
+      <!-- check -->
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-width="2" d="M20 6 9 17l-5-5"/></svg>
+    </div>
+    <div>
+      <h1 class="success-title">Booking Confirmed / बुकिंग सफल ✅</h1>
+      <p class="success-sub">Your appointment is scheduled. / आपका अपॉइंटमेंट निर्धारित हो गया है।</p>
+    </div>
+  </div>
+
+  <!-- Summary card -->
+  <div class="card">
+    <div class="grid cols-2">
+      <div class="row">
+        <div class="label">Appointment No. / अपॉइंटमेंट नं.</div>
+        <div class="value"><%= conf.appointment_no %></div>
+      </div>
+      <div class="row">
+        <div class="label">City / शहर</div>
+        <div class="value"><%= conf.city %></div>
+      </div>
+
+      <div class="row">
+        <div class="label">Date / तारीख</div>
+        <div class="value"><%= conf.appointment_date %></div>
+      </div>
+      <div class="row">
+        <div class="label">Time / समय</div>
+        <div class="value"><%= conf.appointment_time %></div>
+      </div>
+
+      <div class="row" style="grid-column:1 / -1">
+        <div class="label">Doctor & Hospital / डॉक्टर व अस्पताल</div>
+        <div class="value"><%= conf.doctor_name %> — <%= conf.hospital_name %></div>
+      </div>
+
+      <div class="row" style="grid-column:1 / -1">
+        <div class="label">Patient / मरीज</div>
+        <div class="value"><%= conf.patient_name %> (<%= conf.patient_phone %>)</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Helpful actions -->
+  <div class="card">
+    <div class="actions">
+      <!-- Add to Calendar -->
+      <!-- <button class="btn primary" id="addCal">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="2" stroke-width="1.5"/><path stroke-width="1.5" d="M3 9h18M8 2v4M16 2v4"/></svg>
+        <span>Add to Calendar / कैलेंडर में जोड़ें</span>
+      </button> -->
+
+      <!-- Print / Save PDF -->
+      <!-- <button class="btn" id="printBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-width="1.5" d="M6 9V3h12v6M6 18h12v3H6z"/><rect x="3" y="9" width="18" height="8" rx="2" stroke-width="1.5"/></svg>
+        <span>Print / PDF सेव</span>
+      </button> -->
+
+      <!-- Share (WhatsApp / SMS) -->
+      <button class="btn primary" id="shareBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-width="1.5" d="M21 10.5a8.5 8.5 0 1 1-3.1-6.6L22 2l-1.1 4.2A8.47 8.47 0 0 1 21 10.5z"/></svg>
+        <span>Share / शेयर</span>
+      </button>
+    </div>
+
+    <div class="footer-links">
+      <a class="link" href="/my/bookings">My Bookings / मेरी बुकिंग</a>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Data from server
+  const conf = {
+    appointment_no: `<%= String(conf.appointment_no).replace(/`/g, "\\`") %>`,
+    appointment_date: `<%= String(conf.appointment_date).replace(/`/g, "\\`") %>`,
+    appointment_time: `<%= String(conf.appointment_time).replace(/`/g, "\\`") %>`,
+    doctor_name: `<%= String(conf.doctor_name).replace(/`/g, "\\`") %>`,
+    hospital_name: `<%= String(conf.hospital_name).replace(/`/g, "\\`") %>`,
+    city: `<%= String(conf.city).replace(/`/g, "\\`") %>`,
+    patient_name: `<%= String(conf.patient_name).replace(/`/g, "\\`") %>`,
+    patient_phone: `<%= String(conf.patient_phone).replace(/`/g, "\\`") %>`
+  };
+
+  // Build “Directions” link (Google Maps search)
+  const mapLink = document.getElementById('mapLink');
+  const q = encodeURIComponent(`${conf.hospital_name}, ${conf.city}`);
+  mapLink.href = `https://www.google.com/maps/search/?api=1&query=${q}`;
+
+  // Print / Save as PDF
+  document.getElementById('printBtn').addEventListener('click', () => window.print());
+
+  // Share (prefers native share; falls back to WhatsApp)
+  document.getElementById('shareBtn').addEventListener('click', () => {
+    const text = `Appointment Confirmed ✅
+Appointment No: ${conf.appointment_no}
+Doctor: ${conf.doctor_name} — ${conf.hospital_name}, ${conf.city}
+Date: ${conf.appointment_date}
+Time: ${conf.appointment_time}
+Patient: ${conf.patient_name} (${conf.patient_phone})`;
+
+    if (navigator.share) {
+      navigator.share({ title: 'Tap2Doctor Booking', text })
+        .catch(()=>{/* ignore */});
+    } else {
+      const wa = `https://wa.me/?text=${encodeURIComponent(text)}`;
+      window.open(wa, '_blank');
+    }
+  });
+
+  // Add to Calendar (ICS download)
+  document.getElementById('addCal').addEventListener('click', () => {
+    // Try to form a basic DTSTART/DTEND (assume local time; 30-minute slot)
+    const dateStr = conf.appointment_date; // expected YYYY-MM-DD
+    const timeStr = conf.appointment_time; // e.g., "10:30 AM"
+    // Convert to 24h HHmm
+    function toHHmm(t){
+      try{
+        const d = new Date(`1970-01-01 ${t}`);
+        const hh = String(d.getHours()).padStart(2,'0');
+        const mm = String(d.getMinutes()).padStart(2,'0');
+        return hh+mm;
+      }catch{ return '0900'; }
+    }
+    const HHmm = toHHmm(timeStr);
+    // Build DTSTART/DTEND in floating local form (no TZ) for simplicity
+    const dt = dateStr.replace(/-/g,''); // YYYYMMDD
+    const dtstart = `${dt}T${HHmm}00`;
+    // Add 30 mins
+    function plus30(hhmm){
+      const h = parseInt(hhmm.slice(0,2),10);
+      const m = parseInt(hhmm.slice(2,4),10);
+      const total = h*60 + m + 30;
+      const nh = String(Math.floor(total/60)).padStart(2,'0');
+      const nm = String(total%60).padStart(2,'0');
+      return nh+nm;
+    }
+    const dtend = `${dt}T${plus30(HHmm)}00`;
+
+    const title = `Appointment: ${conf.doctor_name}`;
+    const loc = `${conf.hospital_name}, ${conf.city}`;
+    const desc = `Appointment No: ${conf.appointment_no}\\nPatient: ${conf.patient_name} (${conf.patient_phone})`;
+
+    const ics = `BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Tap2Doctor//Booking//EN
+BEGIN:VEVENT
+UID:${conf.appointment_no}@tap2doctor
+DTSTAMP:${dtstart}
+DTSTART:${dtstart}
+DTEND:${dtend}
+SUMMARY:${title}
+LOCATION:${loc}
+DESCRIPTION:${desc}
+END:VEVENT
+END:VCALENDAR`;
+
+    const blob = new Blob([ics], {type:'text/calendar;charset=utf-8'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Tap2Doctor-${conf.appointment_no}.ics`;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); }, 0);
+  });
+</script>
+
+<%- include('../partials/footer') %>

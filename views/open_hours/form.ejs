@@ -1,0 +1,35 @@
+<%- include('../layout.ejs') %>
+
+<h2><%= editing ? 'Edit Open Hours' : 'New Open Hours' %></h2>
+
+<% if (errors.length) { %>
+  <ul class="error"><% errors.forEach(e => { %><li><%= e.msg %></li><% }) %></ul>
+<% } %>
+
+<form method="post" action="<%= editing ? '/open-hours/' + row.open_hours_id : '/open-hours' %>">
+  <label>Doctor
+    <select name="doctor_id" required>
+      <option value="">-- choose --</option>
+      <% doctors.forEach(d => { %>
+        <option value="<%= d.doctor_id %>" <%= row.doctor_id == d.doctor_id ? 'selected':'' %>>
+          <%= d.city %> — <%= d.doctor_name %>
+        </option>
+      <% }) %>
+    </select>
+  </label>
+
+  <label>Day of Week
+    <select name="day_of_week" required>
+      <% for (let i=1;i<=7;i++){ %>
+        <option value="<%= i %>" <%= row.day_of_week==i ? 'selected':'' %>><%= dayNames[i-1] %></option>
+      <% } %>
+    </select>
+  </label>
+
+  <label>Slot Index <input type="number" min="1" max="8" name="slot_index" value="<%= row.slot_index || 1 %>" required></label>
+  <label>Start Time <input type="time" name="start_time" value="<%= row.start_time || '' %>" required></label>
+  <label>End Time <input type="time" name="end_time" value="<%= row.end_time || '' %>" required></label>
+
+  <button><%= editing ? 'Update' : 'Create' %></button>
+  <a href="/open-hours">Cancel</a>
+</form>

@@ -1,0 +1,31 @@
+<%- include('../layout.ejs') %>
+<h2>Welcome, <%= staff.full_name %></h2>
+<p><strong>Date:</strong> <%= date %> | <strong>Current Running No:</strong> <%= current_running_no %></p>
+<p>
+  <a href="/staff/today.csv">Download Today CSV</a>
+</p>
+<form method="post" action="/staff/logout"><button>Logout</button></form>
+
+<table>
+  <thead><tr><th>No</th><th>Time</th><th>Patient</th><th>Phone</th><th>Status</th><th></th></tr></thead>
+  <tbody>
+  <% rows.forEach(r => { %>
+    <tr>
+      <td><%= r.appointment_no %></td>
+      <td><%= r.appointment_time.slice(0,5) %></td>
+      <td><%= r.patient_name %></td>
+      <td><%= r.patient_phone %></td>
+      <td><%= r.status %></td>
+      <td>
+        <% if (r.status === 'booked') { %>
+          <form method="post" action="/staff/complete/<%= r.booking_id %>">
+            <button>Mark Completed</button>
+          </form>
+        <% } else { %>
+          ✅
+        <% } %>
+      </td>
+    </tr>
+  <% }) %>
+  </tbody>
+</table>

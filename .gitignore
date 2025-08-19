@@ -1,0 +1,9 @@
+node_modules/
+.env
+.DS_Store
+*.log
+.wwebjs_cache/
+.vscode/
+*.zip
+desktop.ini
+*.stackdump

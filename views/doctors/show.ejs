@@ -1,0 +1,47 @@
+<%- include('../layout.ejs') %>
+
+<h2><%= doc.doctor_name %></h2>
+<p>
+  <strong>Specialist:</strong> <%= doc.specialist || '-' %><br/>
+  <strong>Hospital:</strong> <%= doc.hospital_name || '-' %><br/>
+  <strong>City:</strong> <%= doc.city %>, <%= doc.state || '' %><br/>
+  <strong>Number:</strong> <%= doc.doctor_number || '-' %><br/>
+  <strong>Fees:</strong> ₹<%= Number(doc.doctor_fees).toFixed(2) %> |
+  <strong>Booking:</strong> ₹<%= Number(doc.booking_fees).toFixed(2) %>
+</p>
+<p class="actions">
+  <a href="/doctors/<%= doc.doctor_id %>/edit">Edit</a>
+  <a href="/open-hours/new">+ Add Open Hours</a>
+  <a href="/exceptions/new">+ Add Exception</a>
+</p>
+
+<h3>Open Hours</h3>
+<table>
+  <thead><tr><th>Day</th><th>Slot</th><th>Start</th><th>End</th></tr></thead>
+  <tbody>
+  <% hours.forEach(h => { %>
+    <tr>
+      <td><%= h.dow %></td>
+      <td>#<%= h.slot_index %></td>
+      <td><%= h.start_time %></td>
+      <td><%= h.end_time %></td>
+    </tr>
+  <% }) %>
+  </tbody>
+</table>
+
+<h3>Exceptions (latest 20)</h3>
+<table>
+  <thead><tr><th>Date</th><th>Closed?</th><th>Start</th><th>End</th><th>Reason</th></tr></thead>
+  <tbody>
+  <% exceptions.forEach(x => { %>
+    <tr>
+      <td><%= x.exception_date.toISOString().slice(0,10) %></td>
+      <td><%= x.is_closed ? 'Yes' : 'No' %></td>
+      <td><%= x.start_time || '-' %></td>
+      <td><%= x.end_time || '-' %></td>
+      <td><%= x.reason || '-' %></td>
+    </tr>
+  <% }) %>
+  </tbody>
+</table>

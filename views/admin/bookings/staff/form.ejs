@@ -1,0 +1,21 @@
+<%- include('../layout.ejs') %>
+<h2>Add Staff</h2>
+<% if (errors.length) { %><ul class="error"><% errors.forEach(e=>{ %><li><%= e.msg %></li><% }) %></ul><% } %>
+<form method="post" action="/admin/staff">
+  <label>Doctor
+    <select name="doctor_id" required>
+      <option value="">-- select --</option>
+      <% doctors.forEach(d=>{ %>
+        <option value="<%= d.doctor_id %>" <%= String(row.doctor_id||'')===String(d.doctor_id) ? 'selected':'' %>>
+          <%= d.city %> — <%= d.doctor_name %>
+        </option>
+      <% }) %>
+    </select>
+  </label>
+  <label>Full Name <input name="full_name" value="<%= row.full_name||'' %>" required></label>
+  <label>Email <input type="email" name="email" value="<%= row.email||'' %>" required></label>
+  <label>Phone <input name="phone" value="<%= row.phone||'' %>" required></label>
+  <label>Password <input type="password" name="password" required></label>
+  <button>Create</button>
+  <a href="/admin/staff">Cancel</a>
+</form>
