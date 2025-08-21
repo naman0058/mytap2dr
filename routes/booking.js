@@ -5,6 +5,57 @@ var { body, validationResult } = require('express-validator');
 
 var pool = require('./db')
 
+
+
+// --- helpers (local-safe) ---
+function toYMDLocal(d = new Date()) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function parseHM(hm) {
+  const [h, m] = hm.split(':').map(Number);
+  return { h: h||0, m: m||0 };
+}
+function formatHM(d) {
+  return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
+
+/**
+ * Generate slots in local time for a given date + range.
+ * - dateISO: 'YYYY-MM-DD'
+ * - startHM/endHM: 'HH:mm'
+ * - isToday: boolean for *local* today
+ * - intervalMin: slot interval (default 15)
+ */
+function genSlotsForRangeLocal(dateISO, startHM, endHM, isToday, intervalMin = 5) {
+  const [y, mo, da] = dateISO.split('-').map(Number);
+  const { h: sh, m: sm } = parseHM(startHM);
+  const { h: eh, m: em } = parseHM(endHM);
+
+  // Local start/end
+  let cur = new Date(y, mo-1, da, sh, sm, 0, 0);
+  const end = new Date(y, mo-1, da, eh, em, 0, 0);
+
+  // If today: start from "now" (rounded up to interval)
+  if (isToday) {
+    const now = new Date();
+    // Round up to next interval
+    const rounded = new Date(now);
+    const minutes = rounded.getMinutes();
+    const remainder = minutes % intervalMin;
+    if (remainder !== 0) rounded.setMinutes(minutes + (intervalMin - remainder), 0, 0);
+    // Use the later of range-start vs rounded-now
+    if (rounded > cur) cur = rounded;
+  }
+
+  const out = [];
+  while (cur < end) {
+    out.push(formatHM(cur));
+    cur = new Date(cur.getTime() + intervalMin * 60000);
+  }
+  return out;
+}
+
+
 /* ---------- helpers ---------- */
 
 function jsToDow1Mon(date) {
@@ -94,28 +145,36 @@ async function getOpenRangesForDate(doctor_id, dateISO) {
 
 /* Return available 5-min slots for a doctor and date (minus already-booked) */
 async function getAvailableSlots(doctor_id, dateISO) {
-  const isToday = (new Date().toISOString().slice(0,10) === dateISO);
-  const ranges = await getOpenRangesForDate(doctor_id, dateISO);
+  // LOCAL today check
+  const isToday = (toYMDLocal(new Date()) === dateISO);
 
-  // Load booked times
+  const ranges = await getOpenRangesForDate(doctor_id, dateISO);
+  // Load booked times (assumes 'HH:mm:ss' or 'HH:mm')
   const [booked] = await pool.query(
     `SELECT appointment_time FROM bookings
       WHERE doctor_id=? AND appointment_date=?`,
     [doctor_id, dateISO]
   );
-  const bookedSet = new Set(booked.map(b => b.appointment_time.slice(0,5)));
+  const bookedSet = new Set(
+    booked.map(b => (b.appointment_time || '').slice(0,5))
+  );
 
-  // Build slots
-  let slots = [];
-  ranges.forEach(r => {
-    const list = genSlotsForRange(dateISO, r.start_time.slice(0,5), r.end_time.slice(0,5), isToday);
-    slots = slots.concat(list);
-  });
+  // Build, flatten, de-duplicate, sort
+  const uniq = new Set();
+  for (const r of ranges) {
+    const start = (r.start_time || '').slice(0,5);
+    const end   = (r.end_time   || '').slice(0,5);
+    if (!start || !end) continue;
+    const list = genSlotsForRangeLocal(dateISO, start, end, isToday, 5);
+    list.forEach(t => uniq.add(t));
+  }
 
-  // Remove already-booked
-  slots = slots.filter(t => !bookedSet.has(t));
-  return slots;
+  // Remove already-booked, return sorted
+  return Array.from(uniq)
+    .filter(t => !bookedSet.has(t))
+    .sort((a,b) => a.localeCompare(b)); // 'HH:mm' lexicographic works
 }
+
 
 /* ---------- pages ---------- */
 
@@ -291,6 +350,7 @@ router.get('/api/slots', async (req, res) => {
     res.status(500).json({ error: 'Could not load slots' });
   }
 });
+
 
 /** POST booking */
 router.post('/',
