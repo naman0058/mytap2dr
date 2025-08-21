@@ -1,18 +1,32 @@
-<%- include('../layout.ejs') %>
+<%- include('../../layout.ejs') %>
+
 <h2>Staff</h2>
-<p><a href="/admin/staff/new">+ Add Staff</a></p>
+<p><a href="/doctors/staff/new">+ Add Staff</a></p>
+
 <table>
-  <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Doctor</th><th>City</th><th>Active</th></tr></thead>
-  <tbody>
-  <% rows.forEach(s => { %>
+  <thead>
     <tr>
-      <td><%= s.full_name %></td>
-      <td><%= s.email %></td>
-      <td><%= s.phone %></td>
-      <td><%= s.doctor_name %></td>
-      <td><%= s.city %></td>
-      <td><%= s.is_active ? 'Yes' : 'No' %></td>
+      <th>Name</th>
+      <th>Email</th>
+      <th>Phone</th>
+      <th>Doctors</th>
+      <th>Active</th>
     </tr>
+  </thead>
+  <tbody>
+    <% (rows || []).forEach(function(s){ %>
+      <tr>
+        <td><%= s.full_name %></td>
+        <td><%= s.email %></td>
+        <td><%= s.phone %></td>
+        <!-- doctor_list comes from the GROUP_CONCAT in the updated route -->
+        <td>
+  <% (s.doctor_list || '—').split(', ').forEach(function(item, i){ %>
+    <div><%= item %></div>
   <% }) %>
+</td>
+        <td><%= s.is_active ? 'Yes' : 'No' %></td>
+      </tr>
+    <% }) %>
   </tbody>
 </table>

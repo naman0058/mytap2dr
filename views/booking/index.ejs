@@ -42,6 +42,24 @@
     padding:2px 8px;border-radius:999px;cursor:pointer;font-size:12px;
   }
 
+
+.meta-row{
+  display:flex; gap:8px; align-items:center; margin-top:6px; flex-wrap:wrap;
+}
+.price-pill{
+  display:inline-flex; align-items:center; gap:6px;
+  padding:4px 10px; border:1px solid #e2e8f0; border-radius:999px;
+  background:#fff; font-weight:700; color:#0f172a; font-size:12px;
+}
+.price-pill .rupee{font-weight:800}
+.offer-badge{
+  display:inline-flex; align-items:center; gap:6px;
+  padding:3px 8px; border-radius:999px; font-size:11px; font-weight:600;
+  background:#0a5fb4; border:1px solid #0a5fb4; color:white;
+}
+.offer-badge svg{width:14px;height:14px}
+.subtle{color:#64748b}
+
   /* Section Card */
   .card{
     background:var(--card);border:1px solid var(--border);border-radius:16px;
@@ -470,9 +488,38 @@
       doctorHidden.innerHTML = '<option value=""></option>';
       docs.forEach(d=>{
         const label = `${d.doctor_name} — ${d.hospital_name || ''} ${d.specialist ? '('+d.specialist+')' : ''}`;
+       
+            const feeTxt = (d.doctor_fees != null && d.doctor_fees !== '')
+  ? new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(Number(d.doctor_fees))
+  : null;
+
+const offerHtml = d.offer_text
+  ? `<span class="offer-badge" title="Special offer">
+       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+         <path stroke-width="1.5" d="M3 12l5 5L21 4"/>
+       </svg>${d.offer_text}
+     </span>`
+  : '';
+
+       
         const btn = document.createElement('button');
         btn.type='button'; btn.className='select-card doctor-item'; btn.setAttribute('aria-pressed','false');
-        btn.innerHTML = `<div class="avatar">🩺</div><div><div class="title">${d.doctor_name}</div><div class="sub">${d.hospital_name || ''} ${d.specialist ? '('+d.specialist+')':''}</div></div>`;
+      
+        
+        btn.innerHTML = `
+  <div class="avatar">🩺</div>
+  <div>
+    <div class="title">${d.doctor_name}</div>
+    <div class="sub subtle">${d.hospital_name || ''} ${d.specialist ? '('+d.specialist+')' : ''}</div>
+
+    <div class="meta-row">
+      ${feeTxt ? `<span class="offer-badge" aria-label="Consultation fee">
+                    <span class="rupee">Doctor Fees ₹</span><span>${feeTxt}</span>
+                  </span>` : ''}
+      ${offerHtml}
+    </div>
+  </div>
+`;
         btn.dataset.id = d.doctor_id; btn.dataset.label = label.trim();
         doctorsGrid.appendChild(btn);
 

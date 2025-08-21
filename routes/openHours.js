@@ -9,7 +9,7 @@ const dayNames = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
 
 /** LIST */
 router.get('/', async (_req, res) => {
-  const rows = await pool.query(
+  const [rows] = await pool.query(
     `SELECT oh.open_hours_id, oh.doctor_id, d.doctor_name, oh.day_of_week, oh.slot_index, oh.start_time, oh.end_time
      FROM doctor_open_hours oh
      JOIN doctors d ON d.doctor_id = oh.doctor_id
@@ -97,6 +97,7 @@ router.post('/',
       if (process.env.NODE_ENV !== 'production') {
         friendlyMsg += ` [${err.code || 'ERR'}]`;
       }
+
 
       return res.status(status).render('open_hours/form', {
         row, editing: false, doctors, dayNames, errors: [{ msg: friendlyMsg }]

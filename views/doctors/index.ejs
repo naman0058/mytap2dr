@@ -1,31 +1,210 @@
 <%- include('../layout.ejs') %>
 
+<style>
+  :root{
+    --brand:#0b76e0; --brand-ink:#0a5fb4; --ink:#0f172a; --muted:#64748b; --border:#e2e8f0;
+    --bg:#f8fafc; --card:#ffffff; --danger:#dc2626;
+    --sidebar-w:260px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,"Noto Sans","Helvetica Neue",Arial}
 
-<h2>Doctors</h2>
-<p><a href="/doctors/new">+ New Doctor</a></p>
+  .layout{display:grid;grid-template-columns:var(--sidebar-w) 1fr;min-height:100vh}
+  @media(max-width:900px){ .layout{grid-template-columns:1fr} }
 
-<table>
-  <thead>
-    <tr>
-      <th>Name</th><th>Specialist</th><th>Hospital</th><th>City</th><th>Fees</th><th>Booking</th><th></th>
-    </tr>
-  </thead>
-  <tbody>
-  <% doctors.forEach(d => { %>
-    <tr>
-      <td><a href="/doctors/<%= d.doctor_id %>"><%= d.doctor_name %></a></td>
-      <td><%= d.specialist || '-' %></td>
-      <td><%= d.hospital_name || '-' %></td>
-      <td><%= d.city %></td>
-      <td>₹<%= Number(d.doctor_fees).toFixed(2) %></td>
-      <td>₹<%= Number(d.booking_fees).toFixed(2) %></td>
-      <td class="actions">
-        <a href="/doctors/<%= d.doctor_id %>/edit">Edit</a>
-        <form action="/doctors/<%= d.doctor_id %>?_method=DELETE" method="post" onsubmit="return confirm('Delete doctor?');">
-          <button>Delete</button>
-        </form>
-      </td>
-    </tr>
-  <% }) %>
-  </tbody>
-</table>
+  /* Sidebar */
+  .sidebar{
+    position:sticky;top:0;height:100vh;overflow:auto;
+    background:#ffffff;border-right:1px solid var(--border);padding:14px;
+  }
+  @media(max-width:900px){
+    .sidebar{position:relative;height:auto;border-right:none;border-bottom:1px solid var(--border)}
+  }
+  .brand{font-weight:800;color:var(--brand-ink);font-size:18px;margin-bottom:10px}
+  .nav a{
+    display:flex;align-items:center;gap:8px;text-decoration:none;color:var(--ink);
+    padding:10px 12px;border-radius:10px;border:1px solid transparent;
+  }
+  .nav a:hover{background:#f1f5f9}
+  .nav a.active{background:#eef6ff;border-color:#dbeafe;color:var(--brand-ink);font-weight:700}
+  .nav .sep{height:1px;background:var(--border);margin:8px 0}
+
+  /* Main */
+  .main{padding:16px;max-width:1200px;margin:0 auto}
+  .header{
+    display:flex;flex-wrap:wrap;align-items:center;gap:10px;justify-content:space-between;
+    margin-bottom:12px
+  }
+  .header h1{margin:0;font-size:20px;color:var(--brand-ink)}
+  .actions-top{display:flex;flex-wrap:wrap;gap:8px}
+  .btn{
+    display:inline-flex;align-items:center;gap:8px;border:1px solid var(--border);background:#fff;
+    padding:10px 12px;border-radius:10px;cursor:pointer;text-decoration:none;color:var(--ink);font-weight:700
+  }
+  .btn.primary{background:var(--brand);color:#fff;border-color:transparent}
+
+  .filters{
+    display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 12px
+  }
+  .input, .select{
+    border:1px solid var(--border);background:#fff;border-radius:10px;padding:10px 12px;min-width:220px
+  }
+
+  /* Table / Cards */
+  .table-wrap{display:none}
+  table{width:100%;border-collapse:separate;border-spacing:0;background:#fff;border:1px solid var(--border);border-radius:16px;overflow:hidden}
+  thead th{background:#f1f5ff;color:#0a5fb4;text-align:left;font-size:13px;padding:10px;border-bottom:1px solid var(--border)}
+  tbody td{padding:10px;border-bottom:1px solid #f1f5f9;font-size:14px;vertical-align:top}
+  tbody tr:last-child td{border-bottom:none}
+
+  .list{display:grid;gap:10px}
+  .card{
+    background:var(--card);border:1px solid var(--border);border-radius:16px;padding:14px;
+    box-shadow:0 1px 1px rgba(0,0,0,.02),0 2px 10px rgba(0,0,0,.03);
+  }
+  .row-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .doc-name{font-weight:800}
+  .meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+  .badge{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;border:1px solid var(--border);background:#fff;font-size:12px}
+  .row-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+  .danger{color:var(--danger)}
+  .muted{color:var(--muted);font-size:12px}
+
+  /* Switch to table on larger screens */
+  @media(min-width:1000px){
+    .list{display:none}
+    .table-wrap{display:block}
+  }
+</style>
+
+<div class="layout">
+  <!-- Sidebar -->
+  <aside class="sidebar" role="navigation" aria-label="Admin sidebar">
+    <div class="brand">Clinic Admin</div>
+    <nav class="nav">
+      <a class="active" href="/doctors">Doctors / डॉक्टर</a>
+      <a href="/open-hours">Open Hours / समय</a>
+      <a href="/exceptions">Exceptions / अपवाद</a>
+      <div class="sep"></div>
+      <a href="/booking">Book Appointment / अपॉइंटमेंट</a>
+      <a href="/admin/bookings">Admin Bookings</a>
+      <div class="sep"></div>
+      <a href="/doctors/staff">Add Staff / स्टाफ जोड़ें</a>
+    </nav>
+  </aside>
+
+  <!-- Main content -->
+  <main class="main">
+    <div class="header">
+      <h1>Doctors / डॉक्टर</h1>
+      <div class="actions-top">
+        <a class="btn primary" href="/doctors/new">+ New Doctor / नया डॉक्टर</a>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters">
+      <input id="q" class="input" type="search" placeholder="Search name/hospital/specialist/city / खोजें">
+      <select id="cityFilter" class="select">
+        <option value="">All Cities / सभी शहर</option>
+        <% Array.from(new Set(doctors.map(d=>d.city))).sort().forEach(c=>{ %>
+          <option value="<%= c %>"><%= c %></option>
+        <% }) %>
+      </select>
+    </div>
+
+    <!-- Mobile cards -->
+    <div class="list" id="list">
+      <% if (!doctors.length) { %>
+        <div class="card"><div class="muted">No doctors found / कोई डॉक्टर नहीं मिला</div></div>
+      <% } %>
+      <% doctors.forEach(d => { %>
+        <div class="card"
+             data-search="<%- [d.doctor_name,d.hospital_name,d.specialist,d.city].filter(Boolean).join(' ').toLowerCase() %>"
+             data-city="<%= d.city %>">
+          <div class="row-top">
+            <div class="doc-name"><a href="/doctors/show/<%= d.doctor_id %>"><%= d.doctor_name %></a></div>
+            <div class="muted">ID: <%= d.doctor_id %></div>
+          </div>
+          <div class="meta">
+            <span class="badge">Specialist / विशेषज्ञ: <%= d.specialist || '-' %></span>
+            <span class="badge">Hospital / अस्पताल: <%= d.hospital_name || '-' %></span>
+            <span class="badge">City / शहर: <%= d.city %></span>
+            <span class="badge">Fees / शुल्क: ₹<%= Number(d.doctor_fees).toFixed(2) %></span>
+            <span class="badge">Booking / बुकिंग: ₹<%= Number(d.booking_fees).toFixed(2) %></span>
+          </div>
+          <div class="row-actions">
+            <a class="btn" href="/doctors/<%= d.doctor_id %>/edit">Edit / संपादित</a>
+            <form action="/doctors/<%= d.doctor_id %>?_method=DELETE" method="post" onsubmit="return confirm('Delete doctor? / डॉक्टर हटाएँ?');">
+              <button class="btn danger" type="submit">Delete / हटाएँ</button>
+            </form>
+            <a class="btn" href="/booking?doctor_id=<%= d.doctor_id %>">Book / बुक</a>
+          </div>
+        </div>
+      <% }) %>
+    </div>
+
+    <!-- Desktop table -->
+    <div class="table-wrap">
+      <table id="tbl">
+        <thead>
+          <tr>
+            <th>Name / नाम</th>
+            <th>Specialist / विशेषज्ञ</th>
+            <th>Hospital / अस्पताल</th>
+            <th>City / शहर</th>
+            <th>Fees / शुल्क</th>
+            <th>Booking / बुकिंग</th>
+            <th style="width:220px"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if (!doctors.length) { %>
+            <tr><td colspan="7">No doctors found / कोई डॉक्टर नहीं मिला</td></tr>
+          <% } %>
+          <% doctors.forEach(d => { %>
+            <tr data-search="<%- [d.doctor_name,d.hospital_name,d.specialist,d.city].filter(Boolean).join(' ').toLowerCase() %>"
+                data-city="<%= d.city %>">
+              <td><a href="/doctors/show/<%= d.doctor_id %>"><%= d.doctor_name %></a></td>
+              <td><%= d.specialist || '-' %></td>
+              <td><%= d.hospital_name || '-' %></td>
+              <td><%= d.city %></td>
+              <td>₹<%= Number(d.doctor_fees).toFixed(2) %></td>
+              <td>₹<%= Number(d.booking_fees).toFixed(2) %></td>
+              <td class="actions" style="display:flex;gap:8px;flex-wrap:wrap">
+                <a class="btn" href="/doctors/<%= d.doctor_id %>/edit">Edit</a>
+                <form action="/doctors/<%= d.doctor_id %>?_method=DELETE" method="post" onsubmit="return confirm('Delete doctor? / डॉक्टर हटाएँ?');">
+                  <button class="btn danger" type="submit">Delete</button>
+                </form>
+                <a class="btn" href="/booking?doctor_id=<%= d.doctor_id %>">Book</a>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<script>
+  // Simple client-side search + city filter (works for both cards and table)
+  const q = document.getElementById('q');
+  const cityFilter = document.getElementById('cityFilter');
+
+  function applyFilter(){
+    const text = (q?.value || '').toLowerCase();
+    const city = (cityFilter?.value || '');
+
+    const rows = document.querySelectorAll('[data-search][data-city]');
+    rows.forEach(el=>{
+      const hay = el.getAttribute('data-search') || '';
+      const c   = el.getAttribute('data-city') || '';
+      const okText = hay.includes(text);
+      const okCity = !city || c === city;
+      el.style.display = (okText && okCity) ? '' : 'none';
+    });
+  }
+
+  q?.addEventListener('input', applyFilter);
+  cityFilter?.addEventListener('change', applyFilter);
+</script>

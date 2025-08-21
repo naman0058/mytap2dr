@@ -1,0 +1,127 @@
+<%- include('../layout.ejs') %>
+<style>
+  :root{
+    --brand:#0b76e0; --brand-dark:#0756a4; --ink:#1e293b; --muted:#64748b;
+    --border:#e2e8f0; --bg:#f8fafc; --card:#fff;
+  }
+  body{background:var(--bg);color:var(--ink)}
+  .page{max-width:1200px;margin:0 auto;padding:24px}
+
+  .head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;
+        background:linear-gradient(90deg,#e0f2fe,#f0f9ff);
+        border:1px solid #bae6fd;border-radius:16px;padding:16px 20px;margin-bottom:18px}
+  .head h1{margin:0;font-size:22px;color:var(--brand-dark)}
+  .pill{background:#fff;border:1px solid #cbd5e1;border-radius:999px;padding:6px 12px;font-weight:600;font-size:13px;margin-left:8px}
+
+  .grid{display:grid;gap:14px}
+  .cards{grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px 18px;box-shadow:0 2px 8px rgba(0,0,0,.05)}
+  .stat-title{font-size:12px;color:var(--muted);margin:0 0 4px}
+  .stat-val{font-size:28px;font-weight:800;margin:0;color:var(--brand-dark)}
+  .muted{color:var(--muted)}
+
+  .chart-card{margin-top:12px}
+  .chart-card h2{margin:0 0 8px;font-size:16px}
+
+  table{width:100%;border-collapse:separate;border-spacing:0;background:#fff;border:1px solid var(--border);border-radius:16px;overflow:hidden}
+  thead th{background:#f1f5ff;color:#0a5fb4;text-align:left;font-size:13px;padding:10px;border-bottom:1px solid var(--border)}
+  tbody td{padding:10px;border-bottom:1px solid #f1f5f9;font-size:14px}
+  tbody tr:last-child td{border-bottom:none}
+
+  .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+  .btn{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:10px;border:1px solid var(--border);background:#fff;text-decoration:none;color:var(--ink);font-weight:700}
+  .btn.primary{background:var(--brand);color:#fff;border:none}
+</style>
+
+<div class="page">
+  <div class="head">
+    <h1>Master Dashboard <span class="muted" style="font-size:12px">/ मास्टर डैशबोर्ड</span></h1>
+    <div>
+      <span class="pill">Today / आज: <%= dates.today %></span>
+      <span class="pill">Month / महीना: <%= dates.thisMonthStart %> → <%= dates.thisMonthEnd %></span>
+    </div>
+  </div>
+
+  <!-- KPIs -->
+  <div class="grid cards">
+    <div class="card"><p class="stat-title">Yesterday / कल</p><p class="stat-val"><%= kpis.yesterday %></p></div>
+    <div class="card"><p class="stat-title">Today / आज</p><p class="stat-val"><%= kpis.today %></p></div>
+    <div class="card"><p class="stat-title">Tomorrow / कल (आने वाला)</p><p class="stat-val"><%= kpis.tomorrow %></p></div>
+    <div class="card"><p class="stat-title">This Month / इस महीने</p><p class="stat-val"><%= kpis.thisMonth %></p></div>
+    <div class="card"><p class="stat-title">Last Month / पिछले महीने</p><p class="stat-val"><%= kpis.lastMonth %></p></div>
+  </div>
+
+  <!-- Chart -->
+  <div class="card chart-card">
+    <h2>Current Month – Daily Appointments / वर्तमान महीना – दैनिक अपॉइंटमेंट</h2>
+    <canvas id="monthChart" height="140"></canvas>
+  </div>
+
+  <!-- Per Doctor Overview -->
+  <div class="card" style="margin-top:14px">
+    <h2 style="margin:0 0 8px;font-size:16px">Per Doctor Overview / डॉक्टर-वार विवरण</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Doctor / डॉक्टर</th>
+          <th>City / शहर</th>
+          <th>Hospital / अस्पताल</th>
+          <th>Yesterday</th>
+          <th>Today</th>
+          <th>Tomorrow</th>
+          <th>This Month</th>
+          <th>Last Month</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (!perDoctor.length) { %>
+          <tr><td colspan="8">No data</td></tr>
+        <% } %>
+        <% perDoctor.forEach(r => { %>
+          <tr>
+            <td><strong><%= r.doctor_name %></strong></td>
+            <td><%= r.city || '-' %></td>
+            <td><%= r.hospital_name || '-' %></td>
+            <td><%= r.yesterday || 0 %></td>
+            <td><%= r.today || 0 %></td>
+            <td><%= r.tomorrow || 0 %></td>
+            <td><%= r.this_month || 0 %></td>
+            <td><%= r.last_month || 0 %></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+
+    <div class="actions">
+      <a class="btn primary" href="/doctors">Manage Doctors</a>
+      <a class="btn" href="/admin/bookings?date=<%= dates.today %>">Today’s Admin Bookings</a>
+      <a class="btn" href="/open-hours">Open Hours</a>
+      <a class="btn" href="/exceptions">Exceptions</a>
+      <a class="btn" href="/booking">Book Appointment</a>
+    </div>
+  </div>
+</div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+  const labels = <%- JSON.stringify(daily.labels) %>; // YYYY-MM-DD per day
+  const data   = <%- JSON.stringify(daily.data) %>;
+
+  const ctx = document.getElementById('monthChart').getContext('2d');
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{ label: 'Appointments', data, borderRadius: 6, backgroundColor: '#0b76e0' }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: { 
+        x: { ticks: { maxRotation: 0, autoSkip: true } },
+        y: { beginAtZero: true, ticks: { precision: 0 } }
+      }
+    }
+  });
+</script>

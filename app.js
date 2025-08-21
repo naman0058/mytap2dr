@@ -53,7 +53,7 @@ app.use('/booking', bookingRouter);
 app.use('/admin', adminRouter);
 // routes
 app.use('/staff', staffRouter);         // login/dashboard/actions
-app.use('/admin/staff', staffAdminRouter); // doctor/admin adds staff
+// app.use('/admin/staff', staffAdminRouter); // doctor/admin adds staff
 app.use('/queue', queueRouter);         // public live queue page + API
 
 // catch 404 and forward to error handler

@@ -164,15 +164,120 @@ router.get('/doctor/:doctorId', (req, res) => {
 
 
 /** JSON: doctors by city */
+// router.get('/api/doctors', async (req, res) => {
+//   const { city } = req.query;
+//   if (!city) return res.json([]);
+//   const [docs] = await pool.query(
+//     `SELECT doctor_id, doctor_name, specialist, hospital_name FROM doctors WHERE city=? ORDER BY doctor_name`,
+//     [city]
+//   );
+//   res.json(docs);
+// });
+
+
+
 router.get('/api/doctors', async (req, res) => {
-  const { city } = req.query;
-  if (!city) return res.json([]);
+  const { city, hospital } = req.query;
+
+  if (!city && !hospital) return res.json([]);
+
   const [docs] = await pool.query(
-    `SELECT doctor_id, doctor_name, specialist, hospital_name FROM doctors WHERE city=? ORDER BY doctor_name`,
-    [city]
+    `
+    SELECT doctor_id, doctor_name, specialist, hospital_name, city , doctor_fees , offer_text
+    FROM doctors
+    WHERE ${city ? 'city=?' : 'hospital_name=?'}
+    ORDER BY doctor_name
+    `,
+    [city || hospital]
   );
   res.json(docs);
 });
+
+
+router.get('/api/hospitals', async (_req, res) => {
+  const [rows] = await pool.query(
+    `SELECT DISTINCT hospital_name AS hospital
+       FROM doctors
+      WHERE hospital_name IS NOT NULL AND hospital_name <> ''
+      ORDER BY hospital`
+  );
+  res.json(rows);
+});
+
+
+
+  router.get(['/by-hospital', '/by-hospital/:hospitalSlug'], async (req, res) => {
+  console.log('patient', req.session.patient);
+
+  // list hospitals (also compute slug so you can link to SEO URLs in the UI)
+  const [hospitals] = await pool.query(
+    `SELECT DISTINCT
+        hospital_name AS hospital,
+        REPLACE(LOWER(hospital_name), ' ', '-') AS slug
+       FROM doctors
+      WHERE hospital_name IS NOT NULL AND hospital_name <> ''
+      ORDER BY hospital`
+  );
+
+  const slug = req.params.hospitalSlug || '';        // e.g. "sahara-hospital"
+  const { doctor_id } = req.query;
+
+  let lockDoctor = false;
+  let lockedDoctor = null;
+  let chosenHospital = '';
+  let chosenDoctor = '';
+
+  // If an SEO slug is provided, resolve to the real hospital name (case-insensitive)
+  if (slug) {
+    const [[hit]] = await pool.query(
+      `SELECT DISTINCT hospital_name AS hospital
+         FROM doctors
+        WHERE hospital_name IS NOT NULL AND hospital_name <> ''
+          AND REPLACE(LOWER(hospital_name), ' ', '-') = ?
+        LIMIT 1`,
+      [slug.toLowerCase()]
+    );
+    if (hit) {
+      chosenHospital = hit.hospital;  // preselect this hospital in the UI
+    } else {
+      // Unknown slug: you can redirect to the generic page or show 404
+      return res.redirect('/booking/by-hospital');
+      // or: return res.status(404).send('Hospital not found');
+    }
+  }
+
+  // If doctor_id is passed, lock that doctor (still supported)
+  if (doctor_id) {
+    const [[doc]] = await pool.query(
+      `SELECT doctor_id, doctor_name, city, hospital_name, specialist, doctor_fees , offer_text
+         FROM doctors
+        WHERE doctor_id=?`,
+      [doctor_id]
+    );
+    if (doc) {
+      lockDoctor = true;
+      lockedDoctor = doc;
+      chosenHospital = chosenHospital || (doc.hospital_name || '');
+      chosenDoctor = String(doc.doctor_id);
+    }
+  }
+
+console.log('lockDoctor',lockDoctor)
+
+  res.render('booking/by_hospital', {
+    hospitals,        // now includes .slug
+    lockDoctor,
+    lockedDoctor,
+    chosenHospital,   // used to preselect the hospital
+    chosenDoctor,
+    chosenDate: '',
+    slots: [],
+    errors: [],
+    active: 'booking'
+  });
+});
+
+
 
 /** JSON: slots by doctor+date (5-min, pruned) */
 router.get('/api/slots', async (req, res) => {
@@ -328,6 +433,351 @@ router.post('/',
         chosenCity: city, chosenDoctor: doctor_id,
         chosenDate: appointment_date, slots: [],
         errors: [{ msg: 'Failed to compute availability. Try again.' }]
+      });
+    }
+  }
+);
+
+
+
+// router.post('/hospital',
+//  body('hospital').trim().notEmpty().withMessage('Hospital is required'),
+//   body('doctor_id').isInt({ min:1 }),
+//   body('appointment_date').isISO8601(),
+//   body('appointment_time').matches(/^\d{2}:\d{2}$/),
+//   body('patient_name').trim().notEmpty(),
+//   body('patient_phone').trim().isLength({ min: 7 }),
+  
+//   async (req, res) => {
+//     const errors = validationResult(req);
+//     const { city= 'Paras Children Clinic', doctor_id, appointment_date, appointment_time, patient_name, patient_phone, prefill_locked } = req.body;
+
+// console.log('body',req.body)
+
+//     const [hospitals] = await pool.query(`SELECT DISTINCT hospital_name FROM doctors ORDER BY hospital_name`);
+//     const lockDoctor = prefill_locked === '1';
+//     let lockedDoctor = null;
+//     if (lockDoctor) {
+//       const [[doc]] = await pool.query(
+//         `SELECT doctor_id, doctor_name, city, hospital_name, specialist FROM doctors WHERE doctor_id=?`,
+//         [doctor_id]
+//       );
+//       lockedDoctor = doc || null;
+//     }
+
+//     if (!errors.isEmpty()) {
+//       return res.status(422).render('booking/by_hospital', {
+//         hospitals, lockDoctor, lockedDoctor,
+//         chosenHospital: city, chosenDoctor: doctor_id,
+//         chosenDate: appointment_date, slots: [],active:'booking',
+//         errors: errors.array()
+//       });
+//     }
+
+//     // Guard: past time
+//     const now = new Date();
+//     const pick = new Date(`${appointment_date}T${appointment_time}:00`);
+//     if (pick < now) {
+//       return res.status(422).render('booking/by_hospital', {
+//         hospitals, lockDoctor, lockedDoctor,
+//         chosenHospital: city, chosenDoctor: doctor_id,active:'booking',
+//         chosenDate: appointment_date, slots: [],
+//         errors: [{ msg: 'Selected time is in the past. Please choose a future slot.' }]
+//       });
+//     }
+
+//     try {
+//       // NEW: same user cannot book multiple slots for same doctor & date
+//       const [[dupe]] = await pool.query(
+//         `SELECT appointment_time, appointment_no
+//            FROM bookings
+//           WHERE doctor_id=? AND appointment_date=? AND patient_phone=?
+//           LIMIT 1`,
+//         [doctor_id, appointment_date, patient_phone]
+//       );
+//       if (dupe) {
+//         return res.status(409).render('booking/by_hospital', {
+//           hospitals, lockDoctor, lockedDoctor,
+//           chosenHospital: city, chosenDoctor: doctor_id,active:'booking',
+//           chosenDate: appointment_date, slots: [],
+//           errors: [{ msg: `Your appointment is already booked for ${dupe.appointment_time.slice(0,5)} (No. ${dupe.appointment_no}). You can’t book another slot with the same doctor on this day.` }]
+//         });
+//       }
+
+//       // Validate slot is still available
+//       const avail = await getAvailableSlots(Number(doctor_id), appointment_date);
+//       if (!avail.includes(appointment_time)) {
+//         return res.status(409).render('booking/by_hospital', {
+//           hospitals, lockDoctor, lockedDoctor,
+//           chosenHospital: city, chosenDoctor: doctor_id,active:'booking',
+//           chosenDate: appointment_date, slots: [],
+//           errors: [{ msg: 'That time just got booked or is not available anymore. Please pick another slot.' }]
+//         });
+//       }
+
+//       // Transaction: assign appointment_no and insert
+//       try {
+
+//         const [[{ max_no }]] = await pool.query(
+//           `SELECT COALESCE(MAX(appointment_no),0) AS max_no
+//              FROM bookings WHERE doctor_id=? AND appointment_date=? FOR UPDATE`,
+//           [doctor_id, appointment_date]
+//         );
+//         const apptNo = Number(max_no) + 1;
+
+//         await pool.query(
+//           `INSERT INTO bookings
+//             (doctor_id, appointment_date, appointment_time, patient_name, patient_phone, appointment_no)
+//            VALUES (?, ?, ?, ?, ?, ?)`,
+//           [doctor_id, appointment_date, appointment_time, patient_name, patient_phone, apptNo]
+//         );
+
+//              req.session.patient = {
+//   phone: patient_phone,
+//   name: patient_name,
+//   lastDoctorId: Number(doctor_id)
+// };
+
+//         const [[doc]] = await pool.query(
+//           `SELECT doctor_name, hospital_name, city FROM doctors WHERE doctor_id=?`,
+//           [doctor_id]
+//         );
+   
+//         return res.render('booking/confirm', {
+//           conf: {
+//             appointment_no: apptNo,
+//             appointment_date,
+//             appointment_time,
+//             doctor_name: doc?.doctor_name || `Doctor #${doctor_id}`,
+//             hospital_name: doc?.hospital_name || '-',
+//             city: doc?.city || city,
+//             patient_name, patient_phone,
+           
+//           },active:'booking',
+//         });
+
+//       } catch (err) {
+        
+//         if (err.code === 'ER_DUP_ENTRY') {
+//           return res.status(409).render('booking/by_hospital', {
+//             hospitals, lockDoctor, lockedDoctor,
+//             chosenHospital: city, chosenDoctor: doctor_id,
+//             chosenDate: appointment_date, slots: [],
+//             errors: [{ msg: 'That time was just booked. Please choose another slot.' }],
+//             active:'booking'
+//           });
+//         }
+//         console.error(err);
+//         return res.status(500).render('booking/by_hospital', {
+//           hospitals, lockDoctor, lockedDoctor,
+//           chosenHospital: city, chosenDoctor: doctor_id,
+//           active:'booking',
+//           chosenDate: appointment_date, slots: [],
+//           errors: [{ msg: (process.env.NODE_ENV === 'production') ? 'Could not create booking.' : `DB error: ${err.code} ${err.sqlMessage}` }]
+//         });
+//       }
+//     } catch (e) {
+//       console.error(e);
+//       return res.status(500).render('booking/by_hospital', {
+//         hospitals, lockDoctor, lockedDoctor,active:'booking',
+//         chosenHospital: city, chosenDoctor: doctor_id,
+//         chosenDate: appointment_date, slots: [],
+//         errors: [{ msg: 'Failed to compute availability. Try again.' }]
+//       });
+//     }
+//   }
+// );
+
+
+router.post('/hospital',
+  body('hospital').trim().notEmpty().withMessage('Hospital is required'),
+  body('doctor_id').isInt({ min: 1 }),
+  body('appointment_date').isISO8601(),
+  body('appointment_time').matches(/^\d{2}:\d{2}$/),
+  body('patient_name').trim().notEmpty(),
+  body('patient_phone').trim().isLength({ min: 7 }),
+  async (req, res) => {
+    const errors = validationResult(req);
+    const {
+      hospital, doctor_id, appointment_date, appointment_time,
+      patient_name, patient_phone, prefill_locked
+    } = req.body;
+
+    console.log('body',req.body)
+
+    // data needed to re-render on error
+    const [hospitals] = await pool.query(
+      `SELECT DISTINCT hospital_name AS hospital
+         FROM doctors
+        WHERE hospital_name IS NOT NULL AND hospital_name <> ''
+        ORDER BY hospital`
+    );
+
+    const lockDoctor = prefill_locked === '1';
+    let lockedDoctor = null;
+    if (lockDoctor) {
+      const [[doc]] = await pool.query(
+        `SELECT doctor_id, doctor_name, city, hospital_name, specialist FROM doctors WHERE doctor_id=?`,
+        [doctor_id]
+      );
+      lockedDoctor = doc || null;
+    }
+
+    if (!errors.isEmpty()) {
+      return res.status(422).render('booking/by_hospital', {
+        hospitals,
+        lockDoctor,
+        lockedDoctor,
+        chosenHospital: hospital || '',
+        chosenDoctor: String(doctor_id || ''),
+        chosenDate: appointment_date || '',
+        slots: [],
+        errors: errors.array(),
+        active: 'booking'
+      });
+    }
+
+    try {
+      // (Optional) sanity: ensure doctor belongs to that hospital
+      const [[chk]] = await pool.query(
+        `SELECT 1 FROM doctors WHERE doctor_id=? AND hospital_name=? LIMIT 1`,
+        [doctor_id, hospital]
+      );
+      if (!chk) {
+        return res.status(400).render('booking/by_hospital', {
+          hospitals, lockDoctor, lockedDoctor,
+          chosenHospital: hospital, chosenDoctor: String(doctor_id), chosenDate: appointment_date,
+          slots: [],
+          errors: [{ msg: 'Selected doctor is not attached to the chosen hospital.' }],
+          active: 'booking'
+        });
+      }
+
+      // Past time guard
+      const now = new Date();
+      const pick = new Date(`${appointment_date}T${appointment_time}:00`);
+      if (pick < now) {
+        return res.status(422).render('booking/by_hospital', {
+          hospitals, lockDoctor, lockedDoctor,
+          chosenHospital: hospital, chosenDoctor: String(doctor_id), chosenDate: appointment_date,
+          slots: [],
+          errors: [{ msg: 'Selected time is in the past. Please choose a future slot.' }],
+          active: 'booking'
+        });
+      }
+
+      // Same user cannot double-book same doctor/day
+      const [[dupe]] = await pool.query(
+        `SELECT appointment_time, appointment_no
+           FROM bookings
+          WHERE doctor_id=? AND appointment_date=? AND patient_phone=?
+          LIMIT 1`,
+        [doctor_id, appointment_date, patient_phone]
+      );
+      if (dupe) {
+        return res.status(409).render('booking/by_hospital', {
+          hospitals, lockDoctor, lockedDoctor,
+          chosenHospital: hospital, chosenDoctor: String(doctor_id), chosenDate: appointment_date,
+          slots: [],
+          errors: [{ msg: `Your appointment is already booked for ${dupe.appointment_time.slice(0,5)} (No. ${dupe.appointment_no}).You can’t book another slot with the same doctor on this day.` }],
+          active: 'booking'
+        });
+      }
+
+      // Slot still available?
+      const avail = await getAvailableSlots(Number(doctor_id), appointment_date);
+      if (!avail.includes(appointment_time)) {
+        return res.status(409).render('booking/by_hospital', {
+          hospitals, lockDoctor, lockedDoctor,
+          chosenHospital: hospital, chosenDoctor: String(doctor_id), chosenDate: appointment_date,
+          slots: [],
+          errors: [{ msg: 'That time just got booked or is not available.' }],
+          active: 'booking'
+        });
+      }
+
+      // Transaction: assign appointment_no and insert
+      const conn = await pool.getConnection();
+      try {
+        await conn.beginTransaction();
+
+        const [[{ max_no }]] = await conn.query(
+          `SELECT COALESCE(MAX(appointment_no),0) AS max_no
+             FROM bookings WHERE doctor_id=? AND appointment_date=? FOR UPDATE`,
+          [doctor_id, appointment_date]
+        );
+        const apptNo = Number(max_no) + 1;
+
+        await conn.query(
+          `INSERT INTO bookings
+            (doctor_id, appointment_date, appointment_time, patient_name, patient_phone, appointment_no)
+           VALUES (?, ?, ?, ?, ?, ?)`,
+          [doctor_id, appointment_date, appointment_time, patient_name, patient_phone, apptNo]
+        );
+
+        await conn.commit();
+        conn.release();
+
+        // Store patient session (keep hospital too)
+        req.session.patient = {
+          ...(req.session.patient || {}),
+          phone: patient_phone,
+          name: patient_name,
+          lastDoctorId: Number(doctor_id),
+          lastHospital: hospital
+        };
+
+        const [[doc]] = await pool.query(
+          `SELECT doctor_name, hospital_name, city FROM doctors WHERE doctor_id=?`,
+          [doctor_id]
+        );
+
+        return res.render('booking/confirm', {
+          conf: {
+            appointment_no: apptNo,
+            appointment_date,
+            appointment_time,
+            doctor_name: doc?.doctor_name || `Doctor #${doctor_id}`,
+            hospital_name: doc?.hospital_name || hospital,
+            city: doc?.city || '-',
+            patient_name, patient_phone,
+            
+          },
+          active:'booking'
+        });
+
+      } catch (err) {
+        await conn.rollback();
+        conn.release();
+        if (err.code === 'ER_DUP_ENTRY') {
+          return res.status(409).render('booking/by_hospital', {
+            hospitals, lockDoctor, lockedDoctor,
+            chosenHospital: hospital, chosenDoctor: String(doctor_id), chosenDate: appointment_date,
+            slots: [],
+            errors: [{ msg: 'That time was just booked. Please choose another slot.' }],
+            active: 'booking'
+          });
+        }
+        console.error(err);
+        return res.status(500).render('booking/by_hospital', {
+          hospitals, lockDoctor, lockedDoctor,
+          chosenHospital: hospital, chosenDoctor: String(doctor_id), chosenDate: appointment_date,
+          slots: [],
+          errors: [{ msg: (process.env.NODE_ENV === 'production') ? 'Could not create booking.' : `DB error: ${err.code} ${err.sqlMessage}` }],
+          active: 'booking'
+        });
+      }
+
+    } catch (e) {
+      console.error(e);
+      return res.status(500).render('booking/by_hospital', {
+        hospitals, lockDoctor, lockedDoctor,
+        chosenHospital: hospital || '',
+        chosenDoctor: String(doctor_id || ''),
+        chosenDate: appointment_date || '',
+        slots: [],
+        errors: [{ msg: 'Failed to compute availability. Try again.' }],
+        active: 'booking'
       });
     }
   }

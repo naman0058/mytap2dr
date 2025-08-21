@@ -1,0 +1,39 @@
+<%- include('../layout.ejs') %>
+<style>
+  :root{ --brand:#0b76e0; --brand-ink:#0a5fb4; --ink:#0f172a; --muted:#64748b; --border:#e2e8f0; --bg:#f8fafc; --card:#fff; --danger:#dc2626; }
+  .wrap{min-height:70vh;display:grid;place-items:center;padding:24px;background:var(--bg)}
+  .card{max-width:440px;width:100%;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:22px;box-shadow:0 6px 20px rgba(0,0,0,.06)}
+  .title{margin:0 0 6px;color:var(--brand-ink);font-size:20px;font-weight:800}
+  .sub{margin:0 0 12px;color:var(--muted);font-size:13px}
+  .error{margin:0 0 14px;padding:10px 12px;background:#fff1f2;border:1px solid #fecdd3;border-radius:12px;color:var(--danger)}
+  .field{margin-bottom:12px}
+  .label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+  .input{width:100%;padding:12px;border-radius:12px;border:1px solid var(--border)}
+  .btn{width:100%;padding:12px;border:none;border-radius:12px;background:var(--brand);color:#fff;font-weight:700;cursor:pointer}
+  .foot{margin-top:10px;text-align:center;color:var(--muted);font-size:12px}
+</style>
+
+<div class="wrap">
+  <div class="card">
+    <h1 class="title">Doctor Login</h1>
+    <p class="sub">Enter your credentials.</p>
+
+    <% if (errors && errors.length) { %>
+      <ul class="error">
+        <% errors.forEach(e=>{ %><li><%= e.msg %></li><% }) %>
+      </ul>
+    <% } %>
+
+    <form method="post" action="/doctors/login">
+      <label class="label">Email </label>
+      <input class="input" type="email" name="email" value="<%= email || '' %>" required autocomplete="email"/>
+
+      <label class="label">Password </label>
+      <input class="input" type="password" name="password" required autocomplete="current-password"/>
+
+      <button class="btn" style="margin-top:12px">Login </button>
+    </form>
+
+    <div class="foot">For authorized master only.</div>
+  </div>
+</div>

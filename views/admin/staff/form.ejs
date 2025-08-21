@@ -1,21 +1,84 @@
-<%- include('../layout.ejs') %>
-<h2>Add Staff</h2>
-<% if (errors.length) { %><ul class="error"><% errors.forEach(e=>{ %><li><%= e.msg %></li><% }) %></ul><% } %>
-<form method="post" action="/admin/staff">
-  <label>Doctor
-    <select name="doctor_id" required>
-      <option value="">-- select --</option>
-      <% doctors.forEach(d=>{ %>
-        <option value="<%= d.doctor_id %>" <%= String(row.doctor_id||'')===String(d.doctor_id) ? 'selected':'' %>>
-          <%= d.city %> — <%= d.doctor_name %>
-        </option>
+<%- include('../../layout.ejs') %>
+
+<h2>Add Staff here</h2>
+
+<% if (errors && errors.length) { %>
+  <ul class="error">
+    <% errors.forEach(e => { %><li><%= e.msg %></li><% }) %>
+    <% errors.forEach(e => { %><li><%= e %></li><% }) %>
+
+  </ul>
+<% } %>
+
+<form method="post" action="/doctors/staff">
+  <!-- Assign one or more doctors -->
+  <fieldset style="border:1px solid #e2e8f0;border-radius:10px;padding:12px;margin-bottom:12px;">
+    <legend style="padding:0 6px;font-weight:700;">Assign Doctors (select one or more)</legend>
+
+    <input id="docSearch" type="search" placeholder="Search doctors by name / hospital / city"
+           style="width:100%;padding:8px 10px;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:10px;">
+
+    <div class="doc-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px;max-height:340px;overflow:auto;border:1px solid #e2e8f0;border-radius:10px;padding:10px;">
+      <% const sel = (row.doctor_ids || []).map(String); %>
+      <% doctors.forEach(d => { %>
+        <label class="doc-item"
+               data-k="<%- [d.doctor_name, d.hospital_name || '', d.city || ''].join(' ').toLowerCase() %>"
+               style="display:flex;gap:8px;align-items:flex-start;border:1px solid #e2e8f0;border-radius:10px;padding:8px;background:#fff;">
+          <input type="checkbox" name="doctor_ids" value="<%= d.doctor_id %>"
+                 <%= sel.includes(String(d.doctor_id)) ? 'checked' : '' %> />
+          <div>
+            <div style="font-weight:700"><%= d.doctor_name %></div>
+            <div style="font-size:12px;color:#64748b">
+              <%= d.hospital_name ? d.hospital_name + ' • ' : '' %><%= d.city %>
+            </div>
+          </div>
+        </label>
       <% }) %>
-    </select>
+    </div>
+    <div style="font-size:12px;color:#64748b;margin-top:6px;">Tip: Use the search box to quickly find a doctor.</div>
+  </fieldset>
+
+  <label style="display:block;margin:8px 0;">Full Name
+    <input name="full_name" value="<%= row.full_name || '' %>" required
+           style="width:100%;padding:10px;border:1px solid #e2e8f0;border-radius:8px;">
   </label>
-  <label>Full Name <input name="full_name" value="<%= row.full_name||'' %>" required></label>
-  <label>Email <input type="email" name="email" value="<%= row.email||'' %>" required></label>
-  <label>Phone <input name="phone" value="<%= row.phone||'' %>" required></label>
-  <label>Password <input type="password" name="password" required></label>
-  <button>Create</button>
-  <a href="/admin/staff">Cancel</a>
+
+  <label style="display:block;margin:8px 0;">Email
+    <input type="email" name="email" value="<%= row.email || '' %>" required
+           style="width:100%;padding:10px;border:1px solid #e2e8f0;border-radius:8px;">
+  </label>
+
+  <label style="display:block;margin:8px 0;">Phone
+    <input name="phone" value="<%= row.phone || '' %>" required
+           style="width:100%;padding:10px;border:1px solid #e2e8f0;border-radius:8px;">
+  </label>
+
+  <label style="display:block;margin:8px 0;">Password
+    <input type="password" name="password" required
+           style="width:100%;padding:10px;border:1px solid #e2e8f0;border-radius:8px;">
+  </label>
+
+  <div style="display:flex;gap:10px;margin-top:12px;">
+    <button type="submit" style="background:#0b76e0;color:#fff;border:none;border-radius:10px;padding:10px 16px;font-weight:700;cursor:pointer;">
+      Create
+    </button>
+    <a href="/doctors/staff" style="text-decoration:none;border:1px solid #e2e8f0;border-radius:10px;padding:10px 16px;color:#0f172a;background:#fff;">
+      Cancel
+    </a>
+  </div>
 </form>
+
+<script>
+  // Client-side doctor search
+  (function(){
+    const s = document.getElementById('docSearch');
+    if (!s) return;
+    s.addEventListener('input', function(){
+      const q = (s.value || '').toLowerCase();
+      document.querySelectorAll('.doc-item').forEach(el => {
+        const k = el.getAttribute('data-k') || '';
+        el.style.display = !q || k.includes(q) ? '' : 'none';
+      });
+    });
+  })();
+</script>

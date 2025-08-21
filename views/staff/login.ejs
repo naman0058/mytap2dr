@@ -1,8 +1,143 @@
 <%- include('../layout.ejs') %>
-<h2>Staff Login</h2>
-<% if (errors.length) { %><ul class="error"><% errors.forEach(e=>{ %><li><%= e.msg %></li><% }) %></ul><% } %>
-<form method="post" action="/staff/login">
-  <label>Email <input name="email" type="email" value="<%= email %>" required></label>
-  <label>Password <input name="password" type="password" required></label>
-  <button>Login</button>
-</form>
+
+<style>
+  :root{
+    --brand:#0b76e0; --brand-ink:#0a5fb4; --ink:#0f172a; --muted:#64748b; --border:#e2e8f0;
+    --bg:#f8fafc; --card:#ffffff; --danger:#dc2626; --success:#16a34a;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,"Noto Sans","Helvetica Neue",Arial}
+
+  .wrap{min-height:100%;display:grid;place-items:center;padding:24px}
+  .login{
+    width:100%;max-width:440px;background:var(--card);border:1px solid var(--border);border-radius:20px;
+    box-shadow:0 1px 1px rgba(0,0,0,.02), 0 6px 20px rgba(0,0,0,.06);
+    padding:22px;
+  }
+
+  /* Brand */
+  .brand{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+  .brand img{width:56px;height:56px;object-fit:contain}
+  .brand .name{font-weight:800;color:var(--brand-ink);font-size:18px}
+  .brand .tag{font-size:12px;color:var(--muted)}
+
+  .title{margin:4px 0 14px;font-size:20px;font-weight:800;color:#0a5fb4}
+  .sub{margin:-6px 0 16px;color:var(--muted);font-size:13px}
+
+  /* Errors */
+  .error{
+    margin:0 0 14px;padding:10px 12px;background:#fff1f2;border:1px solid #fecdd3;border-radius:12px;color:var(--danger);
+    font-size:14px;
+  }
+  .error li{margin-left:18px}
+
+  /* Fields */
+  .field{margin-bottom:12px}
+  .field label span{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+  .input{
+    width:100%;padding:12px 12px;border-radius:12px;border:1px solid var(--border);background:#fff;font-size:15px;
+    outline:none;
+  }
+  .input:focus{border-color:#93c5fd;box-shadow:0 0 0 3px rgba(59,130,246,.15)}
+
+  /* Password toggle */
+  .pw{
+    position:relative;
+  }
+  .pw .toggle{
+    position:absolute;right:8px;top:50%;transform:translateY(-50%);
+    border:none;background:#eef6ff;border:1px solid #dbeafe;color:var(--brand-ink);
+    padding:6px 8px;border-radius:999px;font-size:12px;cursor:pointer;
+  }
+
+  /* Row */
+  .row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:4px}
+  .check{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink)}
+  .link{font-size:13px;color:var(--brand-ink);text-decoration:none}
+  .link:hover{text-decoration:underline}
+
+  /* Buttons */
+  .btn{
+    width:100%;display:inline-flex;align-items:center;justify-content:center;gap:8px;
+    background:var(--brand);color:#fff;border:none;border-radius:12px;padding:12px 14px;font-size:15px;font-weight:700;
+    cursor:pointer;margin-top:12px;
+  }
+  .btn:disabled{background:#9cc9f5;cursor:not-allowed}
+
+  /* Footer note */
+  .note{margin-top:12px;font-size:12px;color:var(--muted);text-align:center}
+</style>
+
+<div class="wrap">
+  <div class="login" role="form" aria-labelledby="login-title">
+    <!-- Brand -->
+    <div class="brand">
+      <img src="https://res.cloudinary.com/dggf8vl9p/image/upload/v1755692940/ChatGPT_Image_Aug_20_2025_03_28_05_PM_ta2itf.webp" alt="Tap2Doctor">
+      <div>
+        <div class="name">Tap2Doctor</div>
+        <div class="tag">Staff</div>
+      </div>
+    </div>
+
+    <h1 id="login-title" class="title">Staff Login</h1>
+    <p class="sub">Enter your credentials to continue.</p>
+
+    <% if (errors && errors.length) { %>
+      <ul class="error" role="alert">
+        <% errors.forEach(e=>{ %><li><%= e.msg %></li><% }) %>
+      </ul>
+    <% } %>
+
+    <form method="post" action="/staff/login" id="loginForm" novalidate>
+      <!-- Email -->
+      <div class="field">
+        <label for="email"><span>Email</span></label>
+        <input id="email" name="email" type="email" value="<%= email %>" required autocomplete="email" class="input" placeholder="you@clinic.com" />
+      </div>
+
+      <!-- Password with Show/Hide -->
+      <div class="field pw">
+        <label for="password"><span>Password</span></label>
+        <input id="password" name="password" type="password" required autocomplete="current-password" class="input" placeholder="••••••••" />
+        <button type="button" class="toggle" id="togglePw" aria-label="Show or hide password">Show</button>
+      </div>
+
+      <div class="row">
+        <label class="check">
+          <input type="checkbox" name="remember" value="1" />
+          <span>Remember me</span>
+        </label>
+      </div>
+
+      <button class="btn" id="loginBtn">Login</button>
+    </form>
+
+    <p class="note">This portal is for authorized staff only.</p>
+  </div>
+</div>
+
+<script>
+  // Show/Hide password
+  (function(){
+    const pw = document.getElementById('password');
+    const tgl = document.getElementById('togglePw');
+    tgl?.addEventListener('click', ()=>{
+      const showing = pw.type === 'text';
+      pw.type = showing ? 'password' : 'text';
+      tgl.textContent = showing ? 'Show' : 'Hide';
+      tgl.setAttribute('aria-pressed', String(!showing));
+      pw.focus();
+    });
+  })();
+
+  // Basic client-side guard (keeps server validation intact)
+  (function(){
+    const form = document.getElementById('loginForm');
+    const btn  = document.getElementById('loginBtn');
+    form?.addEventListener('submit', ()=>{
+      btn.disabled = true;
+      btn.textContent = 'Signing in… / साइन इन हो रहा है…';
+    });
+  })();
+</script>

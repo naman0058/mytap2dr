@@ -1,31 +1,226 @@
 <%- include('../layout.ejs') %>
-<h2>Welcome, <%= staff.full_name %></h2>
-<p><strong>Date:</strong> <%= date %> | <strong>Current Running No:</strong> <%= current_running_no %></p>
-<p>
-  <a href="/staff/today.csv">Download Today CSV</a>
-</p>
-<form method="post" action="/staff/logout"><button>Logout</button></form>
 
-<table>
-  <thead><tr><th>No</th><th>Time</th><th>Patient</th><th>Phone</th><th>Status</th><th></th></tr></thead>
-  <tbody>
-  <% rows.forEach(r => { %>
-    <tr>
-      <td><%= r.appointment_no %></td>
-      <td><%= r.appointment_time.slice(0,5) %></td>
-      <td><%= r.patient_name %></td>
-      <td><%= r.patient_phone %></td>
-      <td><%= r.status %></td>
-      <td>
-        <% if (r.status === 'booked') { %>
-          <form method="post" action="/staff/complete/<%= r.booking_id %>">
-            <button>Mark Completed</button>
-          </form>
-        <% } else { %>
-          ✅
-        <% } %>
-      </td>
-    </tr>
-  <% }) %>
-  </tbody>
-</table>
+<style>
+  :root{
+    --brand:#0b76e0; --brand-ink:#0a5fb4; --ink:#0f172a; --muted:#64748b; --border:#e2e8f0;
+    --bg:#f8fafc; --card:#ffffff; --success:#16a34a; --warn:#f59e0b; --danger:#dc2626;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,"Noto Sans","Helvetica Neue",Arial}
+  .page{max-width:1100px;margin:0 auto;padding:16px}
+
+  /* Header band */
+  .header{
+    display:flex;flex-wrap:wrap;gap:10px;align-items:center;
+    background:#eef6ff;border:1px solid #dbeafe;border-radius:16px;padding:12px;margin:6px 0 16px;
+  }
+  .header-title{margin:0;font-size:18px;color:var(--brand-ink);font-weight:800}
+  .pill{display:inline-flex;align-items:center;gap:8px;background:#fff;border:1px solid #dbeafe;border-radius:999px;padding:6px 10px;font-size:13px}
+  .pill svg{width:16px;height:16px}
+
+  /* Top actions */
+  .actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+  .btn{
+    display:inline-flex;align-items:center;gap:8px;border:1px solid var(--border);background:#fff;
+    padding:10px 12px;border-radius:10px;cursor:pointer;text-decoration:none;color:var(--ink);font-weight:700
+  }
+  .btn.primary{background:var(--brand);color:#fff;border-color:transparent}
+  .btn svg{width:18px;height:18px}
+  .btn.danger{border-color:#fecaca;background:#fef2f2;color:#991b1b}
+
+  /* Filters */
+  .filterbar{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+  .input{border:1px solid var(--border);background:#fff;border-radius:10px;padding:10px 12px;min-width:220px}
+  .select{border:1px solid var(--border);background:#fff;border-radius:10px;padding:10px 12px;min-width:220px}
+
+  /* List + table */
+  .list{display:grid;gap:10px}
+  .card{
+    background:var(--card);border:1px solid var(--border);border-radius:16px;padding:14px;
+    box-shadow:0 1px 1px rgba(0,0,0,.02),0 2px 10px rgba(0,0,0,.03);
+  }
+  .row{display:grid;gap:8px}
+  .meta{display:flex;flex-wrap:wrap;gap:8px}
+  .badge{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;border:1px solid var(--border);background:#fff;font-size:12px}
+
+  .status{font-size:12px;font-weight:800;border-radius:999px;padding:4px 10px;display:inline-block}
+  .status.booked{background:#fff7ed;color:#7c2d12;border:1px solid #fed7aa}
+  .status.completed{background:#ecfdf5;color:#065f46;border:1px solid #bbf7d0}
+  .status.cancelled{background:#fef2f2;color:#991b1b;border:1px solid #fecaca}
+  .status.running{background:#eef2ff;color:#3730a3;border:1px solid #c7d2fe}
+
+  .row-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+
+  /* Desktop table */
+  .table{display:none}
+  table{width:100%;border-collapse:separate;border-spacing:0;background:#fff;border:1px solid var(--border);border-radius:16px;overflow:hidden}
+  thead th{background:#f1f5ff;color:#0a5fb4;text-align:left;font-size:13px;padding:10px;border-bottom:1px solid var(--border)}
+  tbody td{padding:10px;border-bottom:1px solid #f1f5f9;font-size:14px;vertical-align:top}
+  tbody tr:last-child td{border-bottom:none}
+
+  @media(min-width:900px){ .list{display:none} .table{display:block} }
+
+  .muted{color:var(--muted);font-size:12px}
+</style>
+
+<div class="page">
+  <!-- Header -->
+  <div class="header">
+    <h1 class="header-title">Staff Dashboard / स्टाफ डैशबोर्ड</h1>
+
+    <span class="pill" title="Staff / स्टाफ">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="8" r="4" stroke-width="1.5"/><path stroke-width="1.5" d="M4 20a8 8 0 0 1 16 0"/></svg>
+      <strong><%= staff.full_name %></strong>
+    </span>
+
+    <span class="pill" title="Date / तारीख">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="2" stroke-width="1.5"/><path stroke-width="1.5" d="M8 2v4M16 2v4M3 10h18"/></svg>
+      <%= new Date(date).toLocaleDateString("en-IN",{day:"2-digit",month:"short",year:"numeric"}) %>
+    </span>
+
+    <span class="pill" title="Current Running / वर्तमान चल रहा">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 12h4l2 7 4-14 2 7h4" stroke-width="1.5"/></svg>
+      <strong id="runningNo">Current Running No. <%= current_running_no %></strong>
+    </span>
+
+    <!-- Active doctor switcher -->
+    <form method="post" action="/staff/switch" class="pill" style="gap:6px">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="8" r="4" stroke-width="1.5"/><path stroke-width="1.5" d="M4 20a8 8 0 0 1 16 0"/></svg>
+      <label for="doctorSelect" class="muted" style="font-weight:700">Doctor</label>
+      <select id="doctorSelect" name="doctor_id" class="select" onchange="this.form.submit()">
+        <% (staff.doctors || []).forEach(function(d){ %>
+          <option value="<%= d.doctor_id %>" <%= d.doctor_id === active_doctor_id ? 'selected' : '' %>>
+            <%= d.doctor_name %><%= d.hospital_name ? ' — ' + d.hospital_name : '' %><%= d.city ? ' (' + d.city + ')' : '' %>
+          </option>
+        <% }) %>
+      </select>
+    </form>
+
+    <div class="actions">
+      <!-- Add appointment uses ACTIVE doctor -->
+      <a class="btn primary" href="/booking?doctor_id=<%= active_doctor_id %>">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-width="2" d="M12 5v14M5 12h14"/></svg>
+        Add Appointment
+      </a>
+
+      <a class="btn" href="/staff/today.csv" download>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-width="1.8" d="M12 3v12m0 0 4-4m-4 4-4-4M4 21h16"/></svg>
+        Download Today CSV
+      </a>
+
+      <form method="post" action="/staff/logout" style="display:inline">
+        <button class="btn danger" type="submit">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-width="1.8" d="M15 12H3m12 0-3-3m3 3-3 3M21 3v18"/></svg>
+          Logout
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="filterbar">
+    <input id="q" class="input" type="search" placeholder="Search patient/phone/number/status / खोजें: मरीज/फोन/नंबर/स्थिति">
+    <select id="statusFilter" class="select">
+      <option value="">All Status</option>
+      <option value="booked">Booked</option>
+      <option value="completed">Completed</option>
+    </select>
+  </div>
+
+  <!-- Mobile cards -->
+  <div class="list" id="list">
+    <% rows.forEach(r => { %>
+      <div class="card row"
+           data-search="<%- [r.patient_name, r.patient_phone, r.appointment_no, r.status].filter(Boolean).join(' ').toLowerCase() %>"
+           data-status="<%= (r.status||'').toLowerCase() %>">
+        <div class="meta">
+          <span class="badge">No / नंबर: <strong><%= r.appointment_no %></strong></span>
+          <span class="badge">Time / समय: <strong><%= r.appointment_time.slice(0,5) %></strong></span>
+          <span class="badge"><span class="muted">Phone / फोन:</span> <%= r.patient_phone %></span>
+          <span class="status <%= (r.status||'').toLowerCase() %>"><%= r.status %></span>
+        </div>
+        <div>
+          <div style="font-weight:800;margin-top:6px"><%= r.patient_name %></div>
+        </div>
+        <div class="row-actions">
+          <% if (r.status === 'booked') { %>
+            <form method="post" action="/staff/complete/<%= r.booking_id %>">
+              <button class="btn primary" type="submit">Mark Completed / पूर्ण करें</button>
+            </form>
+          <% } else { %>
+            <span class="muted">Completed / पूर्ण ✅</span>
+          <% } %>
+        </div>
+      </div>
+    <% }) %>
+  </div>
+
+  <!-- Desktop table -->
+  <div class="table">
+    <table id="tbl">
+      <thead>
+        <tr>
+          <th>No / नंबर</th>
+          <th>Time / समय</th>
+          <th>Patient / मरीज</th>
+          <th>Phone / फोन</th>
+          <th>Status / स्थिति</th>
+          <th>Action / क्रिया</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% rows.forEach(r => { %>
+          <tr data-search="<%- [r.patient_name, r.patient_phone, r.appointment_no, r.status].filter(Boolean).join(' ').toLowerCase() %>"
+              data-status="<%= (r.status||'').toLowerCase() %>">
+            <td><%= r.appointment_no %></td>
+            <td><%= r.appointment_time.slice(0,5) %></td>
+            <td><%= r.patient_name %></td>
+            <td><%= r.patient_phone %></td>
+            <td><span class="status <%= (r.status||'').toLowerCase() %>"><%= r.status %></span></td>
+            <td>
+              <% if (r.status === 'booked') { %>
+                <form method="post" action="/staff/complete/<%= r.booking_id %>">
+                  <button class="btn primary" type="submit">Mark Completed / पूर्ण करें</button>
+                </form>
+              <% } else { %>
+                ✅
+              <% } %>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+  // Simple client-side filter (search + status)
+  const q = document.getElementById('q');
+  const statusFilter = document.getElementById('statusFilter');
+
+  function applyFilter(){
+    const txt = (q.value || '').toLowerCase();
+    const st  = (statusFilter.value || '').toLowerCase();
+
+    // cards
+    document.querySelectorAll('#list .card').forEach(el=>{
+      const k = el.getAttribute('data-search') || '';
+      const s = el.getAttribute('data-status') || '';
+      const matchTxt = k.includes(txt);
+      const matchSt  = !st || s===st;
+      el.style.display = (matchTxt && matchSt) ? '' : 'none';
+    });
+
+    // table rows
+    document.querySelectorAll('#tbl tbody tr').forEach(tr=>{
+      const k = tr.getAttribute('data-search') || '';
+      const s = tr.getAttribute('data-status') || '';
+      const matchTxt = k.includes(txt);
+      const matchSt  = !st || s===st;
+      tr.style.display = (matchTxt && matchSt) ? '' : 'none';
+    });
+  }
+
+  q.addEventListener('input', applyFilter);
+  statusFilter.addEventListener('change', applyFilter);
+</script>
