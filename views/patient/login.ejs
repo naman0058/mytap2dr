@@ -1,0 +1,51 @@
+<%- include('../layout.ejs') %>
+<style>
+  :root{ --brand:#0b76e0; --border:#e2e8f0; --bg:#f8fafc; --ink:#0f172a; --muted:#64748b; }
+  body{background:var(--bg);color:var(--ink);font-family:system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial}
+  .page{max-width:520px;margin:0 auto;padding:20px}
+  .card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:18px}
+  h1{font-size:20px;margin:0 0 12px;color:#0a5fb4}
+  .field{margin:12px 0}
+  label span{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+  input{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:15px}
+  .btn{background:var(--brand);color:#fff;border:none;border-radius:10px;padding:10px 14px;font-size:15px;cursor:pointer}
+  .error{margin:10px 0 0;padding:10px 12px;background:#fff1f2;border:1px solid #fecdd3;border-radius:12px;color:#dc2626}
+  .muted{color:var(--muted);font-size:13px}
+</style>
+
+<div class="page">
+  <div class="card">
+    <h1>Find Your Appointments / अपनी बुकिंग देखें</h1>
+    <p class="muted">Enter your registered mobile number / पंजीकृत मोबाइल नंबर दर्ज करें</p>
+
+    <% if (errors && errors.length) { %>
+      <ul class="error">
+        <% errors.forEach(e => { %><li><%= e.msg %></li><% }) %>
+      </ul>
+    <% } %>
+
+    <form method="post" action="/my/login">
+      <div class="field">
+        <label><span>Mobile Number / मोबाइल नंबर</span>
+        <input
+  name="phone"
+  type="tel"
+  value="<%= phone %>"
+  minlength="10"
+  maxlength="10"
+  inputmode="numeric"
+  autocomplete="tel"
+  pattern="^[0-9]{10}$"
+  title="Enter 10-digit mobile number"
+  required
+>
+        </label>
+      </div>
+      <button class="btn" type="submit">Continue / आगे बढ़ें</button>
+    </form>
+
+    <p class="muted" style="margin-top:10px">
+      Don’t have an appointment? <a href="/booking">Book now</a> / अपॉइंटमेंट नहीं है? <a href="/booking">बुक करें</a>
+    </p>
+  </div>
+</div>

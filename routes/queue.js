@@ -7,19 +7,30 @@ var { body, validationResult } = require('express-validator');
 var pool = require('./db')
 
 
+function ensurePatient(req, res, next) {
+  if (req.session?.patient) return next();
+  return res.redirect('/my/login');
+}
 
 
 router.get('/', async (req, res) => {
-  // doctor: from query OR fallback to last booked doctor in session
   const doctor_id = Number(req.query.doctor_id || req.session.patient?.lastDoctorId || 0);
-  if (!doctor_id) return res.status(400).send('doctor_id required');
+  const phone     = (req.query.phone || req.session.patient?.phone || '').trim();
 
-  // phone: prefer query (admin preview) else session phone
-  const phone = (req.query.phone || req.session.patient?.phone || '').trim();
+  // If no doctor and no patient session → login
+  if (!doctor_id || !phone) {
+    return res.redirect('/my/login');
+  }
 
   const today = new Date().toISOString().slice(0,10);
-  const data = await computeQueue(doctor_id, today, phone);
-  res.render('queue/index', { data, doctor_id, phone , active:'queue'});
+  const data  = await computeQueue(doctor_id, today, phone);
+
+  res.render('queue/index', {
+    data,
+    doctor_id,
+    phone,
+    active: 'queue'
+  });
 });
 
 
