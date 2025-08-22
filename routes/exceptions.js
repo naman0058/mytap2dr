@@ -9,7 +9,7 @@ var pool = require('./db')
 
 /** LIST */
 router.get('/', async (_req, res) => {
-  const rows = await pool.query(
+  const [rows] = await pool.query(
     `SELECT e.exception_id, e.doctor_id, d.doctor_name, d.city, e.exception_date, e.is_closed, e.start_time, e.end_time, e.reason
      FROM doctor_exceptions e
      JOIN doctors d ON d.doctor_id = e.doctor_id
@@ -20,7 +20,7 @@ router.get('/', async (_req, res) => {
 
 /** NEW FORM */
 router.get('/new', async (_req, res) => {
-  const doctors = await pool.query(`SELECT doctor_id, doctor_name, city FROM doctors ORDER BY city, doctor_name`);
+  const [doctors] = await pool.query(`SELECT doctor_id, doctor_name, city FROM doctors ORDER BY city, doctor_name`);
   res.render('exceptions/form', { row: {}, editing: false, doctors, errors: [] });
 });
 

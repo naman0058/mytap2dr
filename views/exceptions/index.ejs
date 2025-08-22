@@ -1,22 +1,54 @@
 <%- include('../layout.ejs') %>
 
+<%
+// ---- tiny helpers (safe for Date | string | null/undefined) ----
+function fmtDate(d){
+  if (!d) return '—';
+  if (typeof d === 'string') return d.slice(0,10); // 'YYYY-MM-DD' or 'YYYY-MM-DD hh:mm:ss'
+  if (d instanceof Date && !isNaN(d)) {
+    const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0');
+    return `${y}-${m}-${day}`; // local-safe, no UTC shift
+  }
+  const x = new Date(d);
+  if (!isNaN(x)) {
+    const y=x.getFullYear(), m=String(x.getMonth()+1).padStart(2,'0'), day=String(x.getDate()).padStart(2,'0');
+    return `${y}-${m}-${day}`;
+  }
+  return '—';
+}
+function fmtTime(t){
+  if (!t) return '—';
+  if (typeof t === 'string') return t.slice(0,5); // 'HH:MM'
+  // TIME may arrive as Date at epoch in some drivers
+  const x = t instanceof Date ? t : new Date(t);
+  if (!isNaN(x)) {
+    const hh = String(x.getHours()).padStart(2,'0'), mm = String(x.getMinutes()).padStart(2,'0');
+    return `${hh}:${mm}`;
+  }
+  return String(t).slice(0,5);
+}
+%>
+
 <h2>Exceptions</h2>
 <p><a href="/exceptions/new">+ Add Exception</a></p>
 
 <table>
   <thead>
-    <tr><th>Date</th><th>Doctor</th><th>City</th><th>Closed?</th><th>Start</th><th>End</th><th>Reason</th><th></th></tr>
+    <tr>
+      <th>Date</th><th>Doctor</th><th>City</th><th>Closed?</th>
+      <th>Start</th><th>End</th><th>Reason</th><th></th>
+    </tr>
   </thead>
   <tbody>
-  <% rows.forEach(r => { %>
+  <% (rows || []).forEach(r => { %>
     <tr>
-      <td><%= r.exception_date.toISOString().slice(0,10) %></td>
+      <td><%= fmtDate(r.exception_date) %></td>
       <td><%= r.doctor_name %></td>
       <td><%= r.city %></td>
       <td><%= r.is_closed ? 'Yes' : 'No' %></td>
-      <td><%= r.start_time || '-' %></td>
-      <td><%= r.end_time || '-' %></td>
-      <td><%= r.reason || '-' %></td>
+      <td><%= fmtTime(r.start_time) %></td>
+      <td><%= fmtTime(r.end_time) %></td>
+      <td><%= r.reason || '—' %></td>
       <td class="actions">
         <a href="/exceptions/<%= r.exception_id %>">View</a>
         <a href="/exceptions/<%= r.exception_id %>/edit">Edit</a>
