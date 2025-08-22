@@ -7,8 +7,15 @@ var pool = require('./db')
 
 const dayNames = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
 
+
+function ensureMaster(req, res, next) {
+  if (req.session?.master) return next();
+  return res.redirect('/doctors/login');
+}
+
+
 /** LIST */
-router.get('/', async (_req, res) => {
+router.get('/',ensureMaster, async (_req, res) => {
   const [rows] = await pool.query(
     `SELECT oh.open_hours_id, oh.doctor_id, d.doctor_name, oh.day_of_week, oh.slot_index, oh.start_time, oh.end_time
      FROM doctor_open_hours oh
@@ -19,7 +26,7 @@ router.get('/', async (_req, res) => {
 });
 
 /** NEW FORM */
-router.get('/new', async (_req, res) => {
+router.get('/new',ensureMaster, async (_req, res) => {
   const [doctors] = await pool.query(`SELECT doctor_id, doctor_name, city FROM doctors ORDER BY city, doctor_name`);
   res.render('open_hours/form', { row: {}, editing: false, doctors, dayNames, errors: [] });
 });
@@ -107,7 +114,7 @@ router.post('/',
 );
 
 /** SHOW */
-router.get('/:id', async (req, res) => {
+router.get('/:id',ensureMaster, async (req, res) => {
   const [row] = await pool.query(
     `SELECT oh.*, d.doctor_name, d.city
      FROM doctor_open_hours oh
@@ -119,7 +126,7 @@ router.get('/:id', async (req, res) => {
 });
 
 /** EDIT FORM */
-router.get('/:id/edit', async (req, res) => {
+router.get('/:id/edit',ensureMaster, async (req, res) => {
   const [row] = await pool.query(`SELECT * FROM doctor_open_hours WHERE open_hours_id=?`, [req.params.id]);
   if (!row) return res.status(404).send('Not found');
   const doctors = await pool.query(`SELECT doctor_id, doctor_name, city FROM doctors ORDER BY city, doctor_name`);
@@ -127,7 +134,7 @@ router.get('/:id/edit', async (req, res) => {
 });
 
 /** UPDATE */
-router.post('/:id',
+router.post('/:id',ensureMaster,
   body('doctor_id').isInt({ min: 1 }),
   body('day_of_week').isInt({ min: 1, max: 7 }),
   body('slot_index').isInt({ min: 1, max: 8 }),
@@ -152,7 +159,7 @@ router.post('/:id',
 );
 
 /** DELETE */
-router.delete('/:id', async (req, res) => {
+router.delete('/:id',ensureMaster, async (req, res) => {
   await pool.query(`DELETE FROM doctor_open_hours WHERE open_hours_id=?`, [req.params.id]);
   res.redirect('/open-hours');
 });

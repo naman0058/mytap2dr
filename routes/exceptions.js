@@ -5,10 +5,14 @@ var router = express.Router();
 var { body, validationResult } = require('express-validator');
 var pool = require('./db')
 
+function ensureMaster(req, res, next) {
+  if (req.session?.master) return next();
+  return res.redirect('/doctors/login');
+}
 
 
 /** LIST */
-router.get('/', async (_req, res) => {
+router.get('/',ensureMaster, async (_req, res) => {
   const [rows] = await pool.query(
     `SELECT e.exception_id, e.doctor_id, d.doctor_name, d.city, e.exception_date, e.is_closed, e.start_time, e.end_time, e.reason
      FROM doctor_exceptions e
@@ -19,13 +23,13 @@ router.get('/', async (_req, res) => {
 });
 
 /** NEW FORM */
-router.get('/new', async (_req, res) => {
+router.get('/new',ensureMaster, async (_req, res) => {
   const [doctors] = await pool.query(`SELECT doctor_id, doctor_name, city FROM doctors ORDER BY city, doctor_name`);
   res.render('exceptions/form', { row: {}, editing: false, doctors, errors: [] });
 });
 
 /** CREATE */
-router.post('/',
+router.post('/',ensureMaster,
   body('doctor_id').isInt({ min: 1 }),
   body('exception_date').isISO8601().toDate(),
   body('is_closed').toBoolean(),
@@ -61,7 +65,7 @@ router.post('/',
 );
 
 /** SHOW */
-router.get('/:id', async (req, res) => {
+router.get('/:id',ensureMaster, async (req, res) => {
   const [row] = await pool.query(
     `SELECT e.*, d.doctor_name, d.city FROM doctor_exceptions e
      JOIN doctors d ON d.doctor_id=e.doctor_id
@@ -73,7 +77,7 @@ router.get('/:id', async (req, res) => {
 });
 
 /** EDIT FORM */
-router.get('/:id/edit', async (req, res) => {
+router.get('/:id/edit',ensureMaster, async (req, res) => {
   const [row] = await pool.query(`SELECT * FROM doctor_exceptions WHERE exception_id=?`, [req.params.id]);
   if (!row) return res.status(404).send('Not found');
   const doctors = await pool.query(`SELECT doctor_id, doctor_name, city FROM doctors ORDER BY city, doctor_name`);
@@ -81,7 +85,7 @@ router.get('/:id/edit', async (req, res) => {
 });
 
 /** UPDATE */
-router.post('/:id',
+router.post('/:id',ensureMaster,
   body('doctor_id').isInt({ min: 1 }),
   body('exception_date').isISO8601().toDate(),
   body('is_closed').toBoolean(),
@@ -113,7 +117,7 @@ router.post('/:id',
 );
 
 /** DELETE */
-router.delete('/:id', async (req, res) => {
+router.delete('/:id',ensureMaster, async (req, res) => {
   await pool.query(`DELETE FROM doctor_exceptions WHERE exception_id=?`, [req.params.id]);
   res.redirect('/exceptions');
 });
